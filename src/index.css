@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-main: #FDFBF7;
+    --bg-surface: #FFFFFF;
+    --bg-alt: #F8F6F0;
+    --gold-primary: #C5A059;
+    --gold-hover: #B08C46;
+    --gold-light: #F7F3E9;
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #94A3B8;
+    --border-color: #E2E8F0;
+  }
+
+  body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom Utilities for Luxury Feel */
+.bg-cream {
+  background-color: #FDFBF7;
+}
+
+.bg-cream-alt {
+  background-color: #F8F4EC;
+}
+
+.text-gold {
+  color: #C5A059;
+}
+
+.bg-gold {
+  background-color: #C5A059;
+}
+
+.bg-gold-light {
+  background-color: #F8F4EA;
+}
+
+.border-gold {
+  border-color: #C5A059;
+}
+
+.hover-gold:hover {
+  background-color: #B08C46;
+}
+
+/* Soft Luxury Glass shadow */
+.shadow-luxury {
+  box-shadow: 0 10px 40px -10px rgba(197, 160, 89, 0.12), 0 4px 20px -2px rgba(15, 23, 42, 0.04);
+}
+
+.shadow-card {
+  box-shadow: 0 4px 25px -4px rgba(15, 23, 42, 0.05), 0 2px 10px -2px rgba(15, 23, 42, 0.03);
+}
+
+.shadow-header {
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03);
+}
+
+/* Glass effect light */
+.glass-light {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F8F6F0;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #C5A059;
+}
+
+/* Smooth Transitions */
+.transition-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Custom slider */
+input[type=range] {
+  accent-color: #C5A059;
+}
