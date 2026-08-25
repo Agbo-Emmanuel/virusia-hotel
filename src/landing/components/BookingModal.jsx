@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useBooking } from "../../context/BookingContext";
 import { ADDONS } from "../../data/rooms";
+import { formatPrice } from "../../utils/formatMoney";
 import {
   FaTimes,
   FaCalendarAlt,
@@ -16,36 +16,44 @@ import {
   FaPrint,
   FaArrowRight,
   FaArrowLeft,
-  FaUtensils,
-  FaTaxi,
-  FaSpa,
-  FaWineGlassAlt,
+  FaClock,
+  FaMoon,
 } from "react-icons/fa";
 
-const BookingModal = () => {
-  const {
-    activeBookingModalRoom: room,
-    isBookingModalOpen,
-    closeBookingModal,
-    createBooking,
-    formatPrice,
-  } = useBooking();
+const HOURLY_RATE = 2000;
 
+const BookingModal = ({ room, isOpen, onClose, initialConfig = {} }) => {
   const navigate = useNavigate();
 
   // Form Step State (1: Dates & Addons, 2: Guest Details, 3: Payment, 4: Confirmed)
   const [step, setStep] = useState(1);
 
-  // Dates & Nights
+  // Stay Type State ('night' | 'hour')
+  const [stayType, setStayType] = useState(initialConfig.stayType || "night");
+
+  // Nightly Dates & Guests
   const today = new Date().toISOString().split("T")[0];
-  const defaultOut = new Date(Date.now() + 86400000 * 3)
+  const defaultOut = new Date(Date.now() + 86400000)
     .toISOString()
     .split("T")[0];
 
-  const [checkIn, setCheckIn] = useState(today);
-  const [checkOut, setCheckOut] = useState(defaultOut);
-  const [adults, setAdults] = useState(2);
+  const [checkIn, setCheckIn] = useState(initialConfig.checkIn || today);
+  const [checkOut, setCheckOut] = useState(
+    initialConfig.checkOut || defaultOut,
+  );
+  const [adults, setAdults] = useState(
+    initialConfig.adults || room?.capacity?.adults || 2,
+  );
   const [childrenCount, setChildrenCount] = useState(0);
+
+  // Hourly Stay State
+  const [stayDate, setStayDate] = useState(initialConfig.stayDate || today);
+  const [startTime, setStartTime] = useState(
+    initialConfig.startTime || "12:00",
+  );
+  const [durationHours, setDurationHours] = useState(
+    initialConfig.durationHours || 2,
+  );
 
   // Selected Addons array
   const [selectedAddons, setSelectedAddons] = useState([]);
@@ -67,16 +75,24 @@ const BookingModal = () => {
   // Confirmed booking state
   const [confirmedBooking, setConfirmedBooking] = useState(null);
 
-  // Reset internal state when modal opens with a new room
+  // Reset internal state when modal opens or initialConfig changes
   useEffect(() => {
-    if (isBookingModalOpen && room) {
+    if (isOpen && room) {
       setStep(1);
       setSelectedAddons([]);
       setConfirmedBooking(null);
+      setStayType(initialConfig.stayType || "night");
+      if (initialConfig.checkIn) setCheckIn(initialConfig.checkIn);
+      if (initialConfig.checkOut) setCheckOut(initialConfig.checkOut);
+      if (initialConfig.stayDate) setStayDate(initialConfig.stayDate);
+      if (initialConfig.startTime) setStartTime(initialConfig.startTime);
+      if (initialConfig.durationHours)
+        setDurationHours(Number(initialConfig.durationHours));
+      if (initialConfig.adults) setAdults(Number(initialConfig.adults));
     }
-  }, [isBookingModalOpen, room]);
+  }, [isOpen, room, initialConfig]);
 
-  if (!isBookingModalOpen || !room) return null;
+  if (!isOpen || !room) return null;
 
   // Calculate number of nights
   const calculateNights = () => {
@@ -88,12 +104,16 @@ const BookingModal = () => {
   };
 
   const nights = calculateNights();
-  const roomBaseTotal = room.price * nights;
+  const roomBaseTotal =
+    stayType === "hour" ? HOURLY_RATE * durationHours : room.price * nights;
 
   // Addons total
   const addonsTotal = selectedAddons.reduce((sum, addonId) => {
     const addon = ADDONS.find((a) => a.id === addonId);
     if (!addon) return sum;
+    if (stayType === "hour") {
+      return sum + addon.price;
+    }
     return sum + (addon.perNight ? addon.price * nights : addon.price);
   }, 0);
 
@@ -105,7 +125,7 @@ const BookingModal = () => {
     setSelectedAddons((prev) =>
       prev.includes(addonId)
         ? prev.filter((id) => id !== addonId)
-        : [...prev, addonId]
+        : [...prev, addonId],
     );
   };
 
@@ -120,9 +140,16 @@ const BookingModal = () => {
   const handleConfirmPayment = (e) => {
     e.preventDefault();
 
+    const bookingId = `VIR-${Math.floor(100000 + Math.random() * 900000)}`;
+
     const addonDetails = selectedAddons.map((addonId) => {
       const addon = ADDONS.find((a) => a.id === addonId);
-      const total = addon.perNight ? addon.price * nights : addon.price;
+      const total =
+        stayType === "hour"
+          ? addon.price
+          : addon.perNight
+            ? addon.price * nights
+            : addon.price;
       return {
         id: addon.id,
         name: addon.name,
@@ -133,6 +160,7 @@ const BookingModal = () => {
     });
 
     const newBookingData = {
+      id: bookingId,
       room: {
         id: room.id,
         title: room.title,
@@ -140,9 +168,13 @@ const BookingModal = () => {
         image: room.images[0],
         price: room.price,
       },
-      checkIn,
-      checkOut,
-      nights,
+      stayType,
+      checkIn: stayType === "night" ? checkIn : null,
+      checkOut: stayType === "night" ? checkOut : null,
+      nights: stayType === "night" ? nights : null,
+      stayDate: stayType === "hour" ? stayDate : null,
+      startTime: stayType === "hour" ? startTime : null,
+      durationHours: stayType === "hour" ? durationHours : null,
       guests: { adults, children: childrenCount },
       addons: addonDetails,
       guestInfo,
@@ -153,12 +185,12 @@ const BookingModal = () => {
         baseTotal: roomBaseTotal,
         addonsTotal: addonsTotal,
         tax: tax,
-        status: paymentMethod === "hotel" ? "Pay at Check-in" : "Paid & Confirmed",
+        status:
+          paymentMethod === "hotel" ? "Pay at Check-in" : "Paid & Confirmed",
       },
     };
 
-    const result = createBooking(newBookingData);
-    setConfirmedBooking(result);
+    setConfirmedBooking(newBookingData);
     setStep(4);
   };
 
@@ -168,7 +200,7 @@ const BookingModal = () => {
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-6 relative">
           <button
-            onClick={closeBookingModal}
+            onClick={onClose}
             className="absolute right-5 top-5 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer"
             aria-label="Close modal"
           >
@@ -231,6 +263,42 @@ const BookingModal = () => {
           {/* STEP 1: DATES & ADDONS */}
           {step === 1 && (
             <div className="space-y-6">
+              {/* STAY TYPE TOGGLE */}
+              <div className="bg-slate-100 p-1.5 rounded-2xl flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStayType("night")}
+                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    stayType === "night"
+                      ? "bg-white text-slate-900 shadow-md border border-slate-200/80"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <FaMoon
+                    className={
+                      stayType === "night" ? "text-amber-600" : "text-slate-400"
+                    }
+                  />
+                  <span>Per Night Stay ({formatPrice(room.price)}/night)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStayType("hour")}
+                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    stayType === "hour"
+                      ? "bg-white text-amber-950 shadow-md border border-amber-300"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <FaClock
+                    className={
+                      stayType === "hour" ? "text-amber-600" : "text-slate-400"
+                    }
+                  />
+                  <span>Per Hour Stay ({formatPrice(HOURLY_RATE)}/hr)</span>
+                </button>
+              </div>
+
               {/* Room Snapshot Card */}
               <div className="bg-amber-50/60 border border-amber-200/70 rounded-2xl p-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -250,51 +318,107 @@ const BookingModal = () => {
                 </div>
                 <div className="text-right">
                   <span className="font-serif text-2xl font-bold text-slate-900 block">
-                    {formatPrice(room.price)}
+                    {stayType === "hour"
+                      ? formatPrice(HOURLY_RATE)
+                      : formatPrice(room.price)}
                   </span>
-                  <span className="text-xs text-slate-500">per night</span>
+                  <span className="text-xs text-slate-500 font-medium">
+                    {stayType === "hour" ? "/ hour" : "/ night"}
+                  </span>
                 </div>
               </div>
 
-              {/* Dates & Guest Selectors */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Check-In Date
-                  </label>
-                  <input
-                    type="date"
-                    min={today}
-                    value={checkIn}
-                    onChange={(e) => setCheckIn(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Check-Out Date
-                  </label>
-                  <input
-                    type="date"
-                    min={checkIn}
-                    value={checkOut}
-                    onChange={(e) => setCheckOut(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Nights & Guests
-                  </label>
-                  <div className="p-2.5 bg-amber-100/50 border border-amber-200 rounded-xl text-xs flex items-center justify-between font-bold text-slate-800">
-                    <span>{nights} {nights === 1 ? "Night" : "Nights"}</span>
-                    <span className="text-amber-800">{adults} Adults, {childrenCount} Kids</span>
+              {/* DATES vs HOURLY SELECTORS */}
+              {stayType === "night" ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Check-In Date
+                    </label>
+                    <input
+                      type="date"
+                      min={today}
+                      value={checkIn}
+                      onChange={(e) => setCheckIn(e.target.value)}
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Check-Out Date
+                    </label>
+                    <input
+                      type="date"
+                      min={checkIn}
+                      value={checkOut}
+                      onChange={(e) => setCheckOut(e.target.value)}
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Guests
+                    </label>
+                    <select
+                      value={adults}
+                      onChange={(e) => setAdults(Number(e.target.value))}
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
+                    >
+                      {[...Array(room.capacity?.maxGuests || 6)].map((_, i) => (
+                        <option key={i + 1} value={i + 1}>
+                          {i + 1} {i === 0 ? "Guest" : "Guests"}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Stay Date
+                    </label>
+                    <input
+                      type="date"
+                      min={today}
+                      value={stayDate}
+                      onChange={(e) => setStayDate(e.target.value)}
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Start Time
+                    </label>
+                    <input
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Duration (Hours)
+                    </label>
+                    <select
+                      value={durationHours}
+                      onChange={(e) => setDurationHours(Number(e.target.value))}
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
+                    >
+                      {[1, 2, 3, 4, 5, 6, 8, 10, 12, 24].map((h) => (
+                        <option key={h} value={h}>
+                          {h} {h === 1 ? "Hour" : "Hours"} (
+                          {formatPrice(HOURLY_RATE * h)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
 
               {/* Addons Selection */}
-              <div>
+              {/* <div>
                 <h3 className="font-serif font-bold text-slate-900 text-lg mb-1">
                   Enhance Your Stay (Optional Add-ons)
                 </h3>
@@ -333,19 +457,25 @@ const BookingModal = () => {
                         </div>
                         <span className="text-xs font-bold text-amber-800 shrink-0">
                           +{formatPrice(addon.price)}
-                          {addon.perNight && <span className="text-[10px] text-slate-400 font-normal">/n</span>}
+                          {addon.perNight && stayType === "night" && (
+                            <span className="text-[10px] text-slate-400 font-normal">/n</span>
+                          )}
                         </span>
                       </div>
                     );
                   })}
                 </div>
-              </div>
+              </div> */}
 
               {/* Price Calculation Bar & Next */}
               <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                 <div>
                   <span className="text-xs text-slate-500 font-medium block">
-                    Estimated Total ({nights} {nights === 1 ? "night" : "nights"})
+                    Estimated Total (
+                    {stayType === "hour"
+                      ? `${durationHours} ${durationHours === 1 ? "hour" : "hours"} stay`
+                      : `${nights} ${nights === 1 ? "night" : "nights"}`}
+                    )
                   </span>
                   <span className="font-serif text-2xl font-bold text-slate-900">
                     {formatPrice(grandTotal)}
@@ -421,7 +551,7 @@ const BookingModal = () => {
                       onChange={(e) =>
                         setGuestInfo({ ...guestInfo, phone: e.target.value })
                       }
-                      placeholder="+1 (555) 019-2834"
+                      placeholder="+234 800 000 0000"
                       className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:border-amber-500 focus:outline-none transition"
                     />
                   </div>
@@ -429,15 +559,18 @@ const BookingModal = () => {
 
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Special Requests & Estimated Arrival Time
+                    Special Requests & Arrival Details
                   </label>
                   <textarea
                     rows="3"
                     value={guestInfo.specialRequests}
                     onChange={(e) =>
-                      setGuestInfo({ ...guestInfo, specialRequests: e.target.value })
+                      setGuestInfo({
+                        ...guestInfo,
+                        specialRequests: e.target.value,
+                      })
                     }
-                    placeholder="e.g. High floor preference, airport pickup flight #, extra feather pillows..."
+                    placeholder="e.g. High floor preference, airport pickup flight #, extra pillows..."
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:border-amber-500 focus:outline-none transition"
                   />
                 </div>
@@ -476,15 +609,31 @@ const BookingModal = () => {
 
                   <div className="space-y-2 text-xs text-slate-700">
                     <div className="flex justify-between">
-                      <span>{room.title} ({nights} nights)</span>
-                      <span className="font-semibold">{formatPrice(roomBaseTotal)}</span>
+                      <span>
+                        {room.title} (
+                        {stayType === "hour"
+                          ? `${durationHours} hrs stay @ ${formatPrice(HOURLY_RATE)}/hr`
+                          : `${nights} nights @ ${formatPrice(room.price)}/night`}
+                        )
+                      </span>
+                      <span className="font-semibold">
+                        {formatPrice(roomBaseTotal)}
+                      </span>
                     </div>
 
                     {selectedAddons.map((addonId) => {
                       const addon = ADDONS.find((a) => a.id === addonId);
-                      const cost = addon.perNight ? addon.price * nights : addon.price;
+                      const cost =
+                        stayType === "hour"
+                          ? addon.price
+                          : addon.perNight
+                            ? addon.price * nights
+                            : addon.price;
                       return (
-                        <div key={addonId} className="flex justify-between text-slate-500">
+                        <div
+                          key={addonId}
+                          className="flex justify-between text-slate-500"
+                        >
                           <span>+ {addon.name}</span>
                           <span>{formatPrice(cost)}</span>
                         </div>
@@ -508,7 +657,7 @@ const BookingModal = () => {
 
                   <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-[11px] text-emerald-800 flex items-center gap-2">
                     <FaShieldAlt className="text-emerald-600 shrink-0 text-sm" />
-                    <span>Free cancellation up to 48 hours before check-in.</span>
+                    <span>Instant confirmation & free cancellation.</span>
                   </div>
                 </div>
 
@@ -587,7 +736,7 @@ const BookingModal = () => {
                           className="text-amber-600 focus:ring-amber-500"
                         />
                         <span className="text-xs font-bold text-slate-900">
-                          Pay at Front Desk upon Check-In
+                          Pay at Front Desk upon Arrival
                         </span>
                       </div>
                       <FaConciergeBell className="text-slate-500 text-lg" />
@@ -673,7 +822,9 @@ const BookingModal = () => {
                 </h3>
                 <p className="text-slate-600 text-xs mt-1">
                   Confirmation receipt has been sent to{" "}
-                  <strong className="text-slate-900">{confirmedBooking.guestInfo.email}</strong>
+                  <strong className="text-slate-900">
+                    {confirmedBooking.guestInfo.email}
+                  </strong>
                 </p>
               </div>
 
@@ -688,24 +839,61 @@ const BookingModal = () => {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 py-2 border-b border-slate-200">
-                  <div>
-                    <span className="text-slate-400 block font-medium">Check-In</span>
-                    <strong className="text-slate-900 font-serif text-sm">
-                      {confirmedBooking.checkIn} (3:00 PM)
-                    </strong>
+                {confirmedBooking.stayType === "hour" ? (
+                  <div className="grid grid-cols-2 gap-4 py-2 border-b border-slate-200">
+                    <div>
+                      <span className="text-slate-400 block font-medium">
+                        Stay Date
+                      </span>
+                      <strong className="text-slate-900 font-serif text-sm">
+                        {confirmedBooking.stayDate}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block font-medium">
+                        Start Time & Duration
+                      </span>
+                      <strong className="text-slate-900 font-serif text-sm">
+                        {confirmedBooking.startTime} (
+                        {confirmedBooking.durationHours} hrs)
+                      </strong>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-slate-400 block font-medium">Check-Out</span>
-                    <strong className="text-slate-900 font-serif text-sm">
-                      {confirmedBooking.checkOut} (12:00 PM)
-                    </strong>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4 py-2 border-b border-slate-200">
+                    <div>
+                      <span className="text-slate-400 block font-medium">
+                        Check-In
+                      </span>
+                      <strong className="text-slate-900 font-serif text-sm">
+                        {confirmedBooking.checkIn} (3:00 PM)
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block font-medium">
+                        Check-Out
+                      </span>
+                      <strong className="text-slate-900 font-serif text-sm">
+                        {confirmedBooking.checkOut} (12:00 PM)
+                      </strong>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="flex justify-between items-center py-1">
                   <span className="text-slate-600">Room Reserved:</span>
-                  <strong className="text-slate-900">{confirmedBooking.room.title}</strong>
+                  <strong className="text-slate-900">
+                    {confirmedBooking.room.title}
+                  </strong>
+                </div>
+
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-slate-600">Stay Type:</span>
+                  <strong className="text-amber-800 uppercase font-bold text-[11px]">
+                    {confirmedBooking.stayType === "hour"
+                      ? `Per Hour (${confirmedBooking.durationHours} Hours)`
+                      : `Per Night (${confirmedBooking.nights} Nights)`}
+                  </strong>
                 </div>
 
                 <div className="flex justify-between items-center py-1">
@@ -726,23 +914,14 @@ const BookingModal = () => {
               {/* CTAs */}
               <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
                 <button
-                  onClick={() => {
-                    closeBookingModal();
-                    navigate("/my-bookings");
-                  }}
-                  className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-md transition"
-                >
-                  View My Bookings
-                </button>
-                <button
                   onClick={() => window.print()}
-                  className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs px-6 py-3 rounded-xl flex items-center justify-center gap-2 transition"
+                  className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-md flex items-center justify-center gap-2 transition cursor-pointer"
                 >
                   <FaPrint /> Print Receipt
                 </button>
                 <button
-                  onClick={closeBookingModal}
-                  className="w-full sm:w-auto text-slate-500 hover:text-slate-800 font-semibold text-xs px-4 py-3"
+                  onClick={onClose}
+                  className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs px-6 py-3 rounded-xl cursor-pointer transition"
                 >
                   Close Window
                 </button>

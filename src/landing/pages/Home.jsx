@@ -1,8 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useBooking } from "../../context/BookingContext";
-import { ROOMS_DATA, HOTEL_AMENITIES_SHOWCASE, TESTIMONIALS } from "../../data/rooms";
+import {
+  ROOMS_DATA,
+  HOTEL_AMENITIES_SHOWCASE,
+  TESTIMONIALS,
+} from "../../data/rooms";
 import RoomCard from "../components/RoomCard";
+import BookingModal from "../components/BookingModal";
 import {
   FaCalendarAlt,
   FaUserFriends,
@@ -22,7 +26,15 @@ import {
 
 const Home = () => {
   const navigate = useNavigate();
-  const { filters, setFilters, formatPrice } = useBooking();
+  const today = new Date().toISOString().split("T")[0];
+  const defaultOut = new Date(Date.now() + 86400000 * 3)
+    .toISOString()
+    .split("T")[0];
+
+  const [checkIn, setCheckIn] = useState(today);
+  const [checkOut, setCheckOut] = useState(defaultOut);
+  const [category, setCategory] = useState("all");
+  const [selectedBookingRoom, setSelectedBookingRoom] = useState(null);
 
   const featuredRooms = ROOMS_DATA.filter((r) => r.featured);
 
@@ -61,12 +73,17 @@ const Home = () => {
           </h1>
 
           <p className="text-slate-200 text-base sm:text-lg max-w-2xl mx-auto font-light leading-relaxed">
-            Welcome to Virusia Hotel & Suites. Immerse yourself in panoramic ocean vistas, Michelin-star gastronomy, and bespoke butler hospitality.
+            Welcome to Virusia Hotel & Suites. Immerse yourself in panoramic
+            ocean vistas, Michelin-star gastronomy, and bespoke butler
+            hospitality.
           </p>
 
           {/* QUICK SEARCH WIDGET */}
           <div className="bg-white/95 backdrop-blur-md rounded-3xl p-4 sm:p-6 shadow-luxury border border-white/60 text-left max-w-4xl mx-auto">
-            <form onSubmit={handleHeroSearch} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <form
+              onSubmit={handleHeroSearch}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end"
+            >
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   Check-In Date
@@ -75,10 +92,8 @@ const Home = () => {
                   <FaCalendarAlt className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-600 text-xs" />
                   <input
                     type="date"
-                    value={filters.checkIn}
-                    onChange={(e) =>
-                      setFilters((prev) => ({ ...prev, checkIn: e.target.value }))
-                    }
+                    value={checkIn}
+                    onChange={(e) => setCheckIn(e.target.value)}
                     className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-amber-500 transition"
                   />
                 </div>
@@ -92,10 +107,8 @@ const Home = () => {
                   <FaCalendarAlt className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-600 text-xs" />
                   <input
                     type="date"
-                    value={filters.checkOut}
-                    onChange={(e) =>
-                      setFilters((prev) => ({ ...prev, checkOut: e.target.value }))
-                    }
+                    value={checkOut}
+                    onChange={(e) => setCheckOut(e.target.value)}
                     className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-amber-500 transition"
                   />
                 </div>
@@ -108,10 +121,8 @@ const Home = () => {
                 <div className="relative">
                   <FaBed className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-600 text-xs" />
                   <select
-                    value={filters.category}
-                    onChange={(e) =>
-                      setFilters((prev) => ({ ...prev, category: e.target.value }))
-                    }
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
                     className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-amber-500 transition"
                   >
                     <option value="all">All Categories</option>
@@ -199,7 +210,11 @@ const Home = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {featuredRooms.map((room) => (
-            <RoomCard key={room.id} room={room} />
+            <RoomCard
+              key={room.id}
+              room={room}
+              onBookNow={(r) => setSelectedBookingRoom(r)}
+            />
           ))}
         </div>
       </section>
@@ -215,7 +230,8 @@ const Home = () => {
               Indulge in Hotel Amenities
             </h2>
             <p className="text-slate-400 text-sm leading-relaxed">
-              From our oceanfront infinity pool to organic thermal spas and Michelin-inspired culinary arts.
+              From our oceanfront infinity pool to organic thermal spas and
+              Michelin-inspired culinary arts.
             </p>
           </div>
 
@@ -274,7 +290,10 @@ const Home = () => {
               Hospitality Redefined with Personalized Attention
             </h2>
             <p className="text-slate-600 text-sm leading-relaxed">
-              Every detail of Virusia Hotel is meticulously crafted to afford our guests a peaceful luxury sanctuary. From seamless digital check-in to personalized dietary catering and private chauffeur pickups.
+              Every detail of Virusia Hotel is meticulously crafted to afford
+              our guests a peaceful luxury sanctuary. From seamless digital
+              check-in to personalized dietary catering and private chauffeur
+              pickups.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -332,7 +351,7 @@ const Home = () => {
       </section>
 
       {/* TESTIMONIALS */}
-      <section className="bg-cream-alt py-20 px-4 sm:px-6 lg:px-8 border-t border-slate-200/60">
+      {/* <section className="bg-cream-alt py-20 px-4 sm:px-6 lg:px-8 border-t border-slate-200/60">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-xl mx-auto mb-14 space-y-2">
             <span className="text-xs font-extrabold text-amber-600 uppercase tracking-widest block">
@@ -382,7 +401,7 @@ const Home = () => {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* SPECIAL BANNER CTA */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
@@ -395,7 +414,8 @@ const Home = () => {
               Book Direct & Receive Complimentary Spa Pass
             </h3>
             <p className="text-slate-300 text-xs sm:text-sm">
-              Reserve any room or suite online today and enjoy a complimentary \$120 spa pass plus luxury airport transfer.
+              Reserve any room or suite online today and enjoy a complimentary
+              \$120 spa pass plus luxury airport transfer.
             </p>
           </div>
 
@@ -409,6 +429,13 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* Booking Modal Popup */}
+      <BookingModal
+        room={selectedBookingRoom}
+        isOpen={!!selectedBookingRoom}
+        onClose={() => setSelectedBookingRoom(null)}
+      />
     </div>
   );
 };

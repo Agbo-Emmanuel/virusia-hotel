@@ -27,7 +27,8 @@ export const ADDONS = [
   {
     id: "breakfast_buffet",
     name: "Gourmet Buffet Breakfast",
-    description: "Daily access to our Michelin-inspired international breakfast buffet.",
+    description:
+      "Daily access to our Michelin-inspired international breakfast buffet.",
     price: 35,
     perNight: true,
   },
@@ -41,14 +42,16 @@ export const ADDONS = [
   {
     id: "spa_pass",
     name: "Full Day Spa & Wellness Pass",
-    description: "Unlimited access to thermal baths, sauna, steam room & 60-min massage.",
+    description:
+      "Unlimited access to thermal baths, sauna, steam room & 60-min massage.",
     price: 120,
     perNight: true,
   },
   {
     id: "champagne_welcome",
     name: "Champagne & Fruit Basket",
-    description: "Chilled Dom Pérignon bottle with fresh tropical fruit upon arrival.",
+    description:
+      "Chilled Dom Pérignon bottle with fresh tropical fruit upon arrival.",
     price: 95,
     perNight: false,
   },
@@ -57,8 +60,8 @@ export const ADDONS = [
 export const ROOMS_DATA = [
   {
     id: "room-101",
-    title: "Deluxe Oceanfront Suite",
-    category: "deluxe",
+    title: "Room 001",
+    category: "standard",
     tagline: "Breathtaking sea views with private sun deck",
     price: 320,
     originalPrice: 380,
@@ -107,25 +110,29 @@ export const ROOMS_DATA = [
       {
         id: "rev-1",
         author: "Sophia Martinez",
-        avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
+        avatar:
+          "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
         rating: 5,
         date: "August 18, 2026",
-        comment: "Waking up to the ocean sound was absolute heaven! The breakfast served on the private balcony was fresh and high quality. Will return next season!",
+        comment:
+          "Waking up to the ocean sound was absolute heaven! The breakfast served on the private balcony was fresh and high quality. Will return next season!",
       },
       {
         id: "rev-2",
         author: "David Chen",
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+        avatar:
+          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
         rating: 5,
         date: "July 24, 2026",
-        comment: "Impeccable service from check-in to check-out. The bed is exceptionally comfortable and the ocean view exceeded our expectations.",
+        comment:
+          "Impeccable service from check-in to check-out. The bed is exceptionally comfortable and the ocean view exceeded our expectations.",
       },
     ],
   },
   {
     id: "room-102",
-    title: "Presidential Royal Suite",
-    category: "presidential",
+    title: "Room 002",
+    category: "standard",
     tagline: "The pinnacle of hospitality with dedicated private butler",
     price: 850,
     originalPrice: 990,
@@ -176,17 +183,19 @@ export const ROOMS_DATA = [
       {
         id: "rev-3",
         author: "Alexander Wright",
-        avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80",
+        avatar:
+          "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80",
         rating: 5,
         date: "August 02, 2026",
-        comment: "Unmatched luxury! Our butler Michael catered to every single need. The private jacuzzi on the balcony under the night sky is unforgettable.",
+        comment:
+          "Unmatched luxury! Our butler Michael catered to every single need. The private jacuzzi on the balcony under the night sky is unforgettable.",
       },
     ],
   },
   {
     id: "room-103",
-    title: "Executive Business Suite",
-    category: "executive",
+    title: "Room 003",
+    category: "standard",
     tagline: "Sophisticated sanctuary equipped with ergonomic workspace",
     price: 240,
     originalPrice: 290,
@@ -233,17 +242,19 @@ export const ROOMS_DATA = [
       {
         id: "rev-4",
         author: "Elena Rostova",
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+        avatar:
+          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
         rating: 5,
         date: "July 12, 2026",
-        comment: "The Wi-Fi was blazing fast and the work desk setup was super comfortable during my work trip. Quiet atmosphere and delicious coffee!",
+        comment:
+          "The Wi-Fi was blazing fast and the work desk setup was super comfortable during my work trip. Quiet atmosphere and delicious coffee!",
       },
     ],
   },
   {
     id: "room-104",
-    title: "Grand Family Haven Suite",
-    category: "family",
+    title: "Room 004",
+    category: "standard",
     tagline: "Spacious multi-bedroom layout perfect for family retreats",
     price: 450,
     originalPrice: 520,
@@ -289,16 +300,18 @@ export const ROOMS_DATA = [
       {
         id: "rev-5",
         author: "Marcus Vance",
-        avatar: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=200&q=80",
+        avatar:
+          "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=200&q=80",
         rating: 5,
         date: "August 10, 2026",
-        comment: "Our kids loved the twin rooms and pool access! Plenty of space for 5 of us. Staff went above and beyond to provide extra toys and snacks.",
+        comment:
+          "Our kids loved the twin rooms and pool access! Plenty of space for 5 of us. Staff went above and beyond to provide extra toys and snacks.",
       },
     ],
   },
   {
     id: "room-105",
-    title: "Classic Superior Room",
+    title: "Room 005",
     category: "standard",
     tagline: "Warm contemporary comfort with premium essential amenities",
     price: 150,
@@ -323,13 +336,7 @@ export const ROOMS_DATA = [
       "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=1200&q=80",
     ],
-    amenities: [
-      "wifi",
-      "air_conditioning",
-      "tv",
-      "safe",
-      "room_service",
-    ],
+    amenities: ["wifi", "air_conditioning", "tv", "safe", "room_service"],
     description: `A perfectly appointed haven featuring warm timber accents, plush Queen bed with premium feather pillows, rainfall shower, and HD smart TV. Ideal for solo travelers or couples seeking luxury at a moderate price point.`,
     policies: {
       checkIn: "3:00 PM",
@@ -342,17 +349,19 @@ export const ROOMS_DATA = [
       {
         id: "rev-6",
         author: "Chloe Bennett",
-        avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80",
+        avatar:
+          "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80",
         rating: 4.5,
         date: "June 29, 2026",
-        comment: "Extremely clean, modern room with a very quiet AC. Great price for a 5-star hotel standard!",
+        comment:
+          "Extremely clean, modern room with a very quiet AC. Great price for a 5-star hotel standard!",
       },
     ],
   },
   {
     id: "room-106",
-    title: "Skyline Sky Penthouse",
-    category: "penthouse",
+    title: "Room 006",
+    category: "standard",
     tagline: "Exclusive private roof terrace with heated jacuzzi pool",
     price: 1100,
     originalPrice: 1350,
@@ -402,10 +411,12 @@ export const ROOMS_DATA = [
       {
         id: "rev-7",
         author: "Jonathan Sterling",
-        avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80",
+        avatar:
+          "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80",
         rating: 5,
         date: "August 15, 2026",
-        comment: "Celebrated our wedding anniversary here. Watching the stargazing sky from the private rooftop pool with champagne was priceless!",
+        comment:
+          "Celebrated our wedding anniversary here. Watching the stargazing sky from the private rooftop pool with champagne was priceless!",
       },
     ],
   },
@@ -416,32 +427,40 @@ export const HOTEL_AMENITIES_SHOWCASE = [
     id: "pool",
     title: "Infinity Oceanfront Pool",
     subtitle: "Sun-drenched pool deck with poolside bar and cabanas",
-    description: "Relax alongside panoramic ocean views in our temperature-controlled infinity pool.",
-    image: "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&w=800&q=80",
+    description:
+      "Relax alongside panoramic ocean views in our temperature-controlled infinity pool.",
+    image:
+      "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&w=800&q=80",
     hours: "06:00 AM - 10:00 PM Daily",
   },
   {
     id: "dining",
     title: "Aura Gourmet Restaurant",
     subtitle: "Michelin-starred fine dining featuring organic local produce",
-    description: "Savor exquisite coastal seafood dishes paired with fine wines hand-selected by master sommelier.",
-    image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80",
+    description:
+      "Savor exquisite coastal seafood dishes paired with fine wines hand-selected by master sommelier.",
+    image:
+      "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80",
     hours: "07:00 AM - 11:00 PM Daily",
   },
   {
     id: "spa",
     title: "Serenity Wellness Spa",
     subtitle: "Holistic massages, hot stone treatments & thermal hydrotherapy",
-    description: "Rejuvenate mind and body with traditional Asian bodywork and organic botanical facial therapies.",
-    image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80",
+    description:
+      "Rejuvenate mind and body with traditional Asian bodywork and organic botanical facial therapies.",
+    image:
+      "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80",
     hours: "08:00 AM - 09:00 PM Daily",
   },
   {
     id: "gym",
     title: "Fitness & Pilates Lounge",
     subtitle: "State-of-the-art Technogym equipment with certified trainers",
-    description: "Maintain your regimen with personal training sessions, yoga classes, and sea-view cardio decks.",
-    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80",
+    description:
+      "Maintain your regimen with personal training sessions, yoga classes, and sea-view cardio decks.",
+    image:
+      "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80",
     hours: "24 Hours Accessible",
   },
 ];
@@ -451,7 +470,8 @@ export const TESTIMONIALS = [
     id: 1,
     name: "Victoria & Ethan Ross",
     role: "Honeymooners from London",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+    avatar:
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
     text: "Virusia Hotel defined modern luxury for us. The oceanfront views from our balcony were surreal, and the booking process was seamless!",
     rating: 5,
   },
@@ -459,7 +479,8 @@ export const TESTIMONIALS = [
     id: 2,
     name: "Dr. Aris Thorne",
     role: "Frequent Business Traveler",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80",
+    avatar:
+      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80",
     text: "As someone who travels 100+ days a year, the attention to detail, fast internet, and executive lounge service at Virusia is world-class.",
     rating: 5,
   },
@@ -467,7 +488,8 @@ export const TESTIMONIALS = [
     id: 3,
     name: "Amara Kalu",
     role: "Family Vacationer",
-    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80",
+    avatar:
+      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80",
     text: "The Grand Family Suite had plenty of room for our 3 kids. Kids loved the heated pool and breakfast buffet spread every morning!",
     rating: 5,
   },

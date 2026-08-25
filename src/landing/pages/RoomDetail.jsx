@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useBooking } from "../../context/BookingContext";
 import { ROOMS_DATA, AMENITIES_LIST } from "../../data/rooms";
 import RoomCard from "../components/RoomCard";
+import BookingModal from "../components/BookingModal";
 import {
   FaStar,
   FaBed,
@@ -18,24 +18,38 @@ import {
   FaBan,
   FaDog,
   FaQuoteLeft,
+  FaMoon,
 } from "react-icons/fa";
+import { formatPrice } from "../../utils/formatMoney";
+
+const HOURLY_RATE = 2000;
 
 const RoomDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { openBookingModal, formatPrice } = useBooking();
 
   const room = ROOMS_DATA.find((r) => r.id === id) || ROOMS_DATA[0];
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Stay Type: 'night' | 'hour'
+  const [stayType, setStayType] = useState("night");
 
   // Widget dates state for quick booking preview
   const today = new Date().toISOString().split("T")[0];
-  const defaultOut = new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0];
+  const defaultOut = new Date(Date.now() + 86400000 * 3)
+    .toISOString()
+    .split("T")[0];
 
   const [checkIn, setCheckIn] = useState(today);
   const [checkOut, setCheckOut] = useState(defaultOut);
-  const [adults, setAdults] = useState(room.capacity.adults || 2);
+  const [adults, setAdults] = useState(room.capacity?.adults || 2);
+
+  // Hourly Stay State
+  const [stayDate, setStayDate] = useState(today);
+  const [startTime, setStartTime] = useState("12:00");
+  const [durationHours, setDurationHours] = useState(2);
 
   const calculateNights = () => {
     const start = new Date(checkIn);
@@ -46,7 +60,10 @@ const RoomDetail = () => {
   };
 
   const nights = calculateNights();
-  const baseTotal = room.price * nights;
+  const baseTotal =
+    stayType === "hour"
+      ? HOURLY_RATE * durationHours
+      : room.price * nights;
   const estTax = Math.round(baseTotal * 0.1);
   const grandTotal = baseTotal + estTax;
 
@@ -74,11 +91,11 @@ const RoomDetail = () => {
               <span className="bg-amber-100 text-amber-800 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
                 {room.category} Suite
               </span>
-              {room.badge && (
+              {/* {room.badge && (
                 <span className="bg-slate-900 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                   {room.badge}
                 </span>
-              )}
+              )} */}
             </div>
             <h1 className="font-serif text-3xl sm:text-5xl font-bold text-slate-900">
               {room.title}
@@ -93,15 +110,17 @@ const RoomDetail = () => {
               <span className="font-serif text-3xl sm:text-4xl font-bold text-slate-900">
                 {formatPrice(room.price)}
               </span>
-              <span className="text-xs text-slate-500 font-medium">/ night</span>
+              <span className="text-xs text-slate-500 font-medium">
+                / night
+              </span>
             </div>
-            <div className="flex items-center gap-1 text-xs text-amber-500 font-bold mt-1 justify-start md:justify-end">
+            {/* <div className="flex items-center gap-1 text-xs text-amber-500 font-bold mt-1 justify-start md:justify-end">
               <FaStar />
               <span className="text-slate-800">{room.rating}</span>
               <span className="text-slate-400 font-normal">
                 ({room.reviewsCount} guest reviews)
               </span>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -191,7 +210,7 @@ const RoomDetail = () => {
             </div>
 
             {/* Amenities Grid */}
-            <div className="space-y-4">
+            {/* <div className="space-y-4">
               <h3 className="font-serif text-2xl font-bold text-slate-900">
                 Included Room Amenities
               </h3>
@@ -209,7 +228,7 @@ const RoomDetail = () => {
                   );
                 })}
               </div>
-            </div>
+            </div> */}
 
             {/* Policies */}
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 space-y-4 text-xs">
@@ -220,21 +239,30 @@ const RoomDetail = () => {
                 <div className="flex items-start gap-2.5">
                   <FaClock className="text-amber-600 text-sm mt-0.5" />
                   <div>
-                    <strong className="block text-slate-900">Check-In / Out</strong>
-                    <span>Check-in: {room.policies.checkIn} • Check-out: {room.policies.checkOut}</span>
+                    <strong className="block text-slate-900">
+                      Check-In / Out
+                    </strong>
+                    <span>
+                      Check-in: {room.policies.checkIn} • Check-out:{" "}
+                      {room.policies.checkOut}
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <FaShieldAlt className="text-amber-600 text-sm mt-0.5" />
                   <div>
-                    <strong className="block text-slate-900">Cancellation</strong>
+                    <strong className="block text-slate-900">
+                      Cancellation
+                    </strong>
                     <span>{room.policies.cancellation}</span>
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <FaBan className="text-amber-600 text-sm mt-0.5" />
                   <div>
-                    <strong className="block text-slate-900">Smoking Policy</strong>
+                    <strong className="block text-slate-900">
+                      Smoking Policy
+                    </strong>
                     <span>{room.policies.smoking}</span>
                   </div>
                 </div>
@@ -249,7 +277,7 @@ const RoomDetail = () => {
             </div>
 
             {/* Reviews Section */}
-            <div className="space-y-6">
+            {/* <div className="space-y-6">
               <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <h3 className="font-serif text-2xl font-bold text-slate-900">
                   Guest Reviews ({room.reviewsCount})
@@ -294,73 +322,153 @@ const RoomDetail = () => {
                   </div>
                 ))}
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* RIGHT COLUMN - STICKY BOOKING WIDGET */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-luxury sticky top-24 space-y-6">
               <div className="border-b border-slate-100 pb-4">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-amber-600 block">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-amber-600 block mb-1">
                   Reserve This Room
                 </span>
-                <div className="flex items-baseline gap-1.5 mt-1">
+                <div className="flex items-baseline gap-1.5">
                   <span className="font-serif text-3xl font-bold text-slate-900">
-                    {formatPrice(room.price)}
+                    {stayType === "hour" ? formatPrice(HOURLY_RATE) : formatPrice(room.price)}
                   </span>
-                  <span className="text-xs text-slate-500 font-medium">/ night</span>
+                  <span className="text-xs text-slate-500 font-medium">
+                    {stayType === "hour" ? "/ hour" : "/ night"}
+                  </span>
                 </div>
               </div>
 
-              {/* Dates input */}
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                    Check-In Date
-                  </label>
-                  <input
-                    type="date"
-                    min={today}
-                    value={checkIn}
-                    onChange={(e) => setCheckIn(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:border-amber-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                    Check-Out Date
-                  </label>
-                  <input
-                    type="date"
-                    min={checkIn}
-                    value={checkOut}
-                    onChange={(e) => setCheckOut(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:border-amber-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                    Guests
-                  </label>
-                  <select
-                    value={adults}
-                    onChange={(e) => setAdults(Number(e.target.value))}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:border-amber-500 focus:outline-none"
-                  >
-                    {[...Array(room.capacity.maxGuests)].map((_, i) => (
-                      <option key={i + 1} value={i + 1}>
-                        {i + 1} {i === 0 ? "Guest" : "Guests"}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {/* STAY TYPE TOGGLE */}
+              <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setStayType("night")}
+                  className={`flex-1 py-2 px-2.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    stayType === "night"
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  <FaMoon className={stayType === "night" ? "text-amber-600" : ""} />
+                  <span>Per Night</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStayType("hour")}
+                  className={`flex-1 py-2 px-2.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    stayType === "hour"
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  <FaClock className={stayType === "hour" ? "text-amber-600" : ""} />
+                  <span>Per Hour</span>
+                </button>
               </div>
+
+              {/* Inputs depending on stayType */}
+              {stayType === "night" ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                      Check-In Date
+                    </label>
+                    <input
+                      type="date"
+                      min={today}
+                      value={checkIn}
+                      onChange={(e) => setCheckIn(e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                      Check-Out Date
+                    </label>
+                    <input
+                      type="date"
+                      min={checkIn}
+                      value={checkOut}
+                      onChange={(e) => setCheckOut(e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                      Guests
+                    </label>
+                    <select
+                      value={adults}
+                      onChange={(e) => setAdults(Number(e.target.value))}
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:border-amber-500 focus:outline-none"
+                    >
+                      {[...Array(room.capacity?.maxGuests || 6)].map((_, i) => (
+                        <option key={i + 1} value={i + 1}>
+                          {i + 1} {i === 0 ? "Guest" : "Guests"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                      Stay Date
+                    </label>
+                    <input
+                      type="date"
+                      min={today}
+                      value={stayDate}
+                      onChange={(e) => setStayDate(e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                      Start Time
+                    </label>
+                    <input
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                      Duration (Hours)
+                    </label>
+                    <select
+                      value={durationHours}
+                      onChange={(e) => setDurationHours(Number(e.target.value))}
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:border-amber-500 focus:outline-none"
+                    >
+                      {[1, 2, 3, 4, 5, 6, 8, 10, 12, 24].map((h) => (
+                        <option key={h} value={h}>
+                          {h} {h === 1 ? "Hour" : "Hours"} ({formatPrice(HOURLY_RATE * h)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
 
               {/* Calculated Summary */}
               <div className="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-4 space-y-2 text-xs text-slate-700">
                 <div className="flex justify-between">
-                  <span>{formatPrice(room.price)} x {nights} nights</span>
-                  <span className="font-semibold">{formatPrice(baseTotal)}</span>
+                  <span>
+                    {stayType === "hour"
+                      ? `${formatPrice(HOURLY_RATE)} x ${durationHours} hrs`
+                      : `${formatPrice(room.price)} x ${nights} nights`}
+                  </span>
+                  <span className="font-semibold">
+                    {formatPrice(baseTotal)}
+                  </span>
                 </div>
                 <div className="flex justify-between text-slate-500">
                   <span>Est. Tax & Service Fee (10%)</span>
@@ -368,37 +476,39 @@ const RoomDetail = () => {
                 </div>
                 <div className="pt-2 border-t border-amber-200/80 flex justify-between font-serif font-bold text-slate-900 text-sm">
                   <span>Estimated Total:</span>
-                  <span className="text-amber-800 text-base">{formatPrice(grandTotal)}</span>
+                  <span className="text-amber-800 text-base">
+                    {formatPrice(grandTotal)}
+                  </span>
                 </div>
               </div>
 
               {/* Action Button */}
               <button
-                onClick={() => openBookingModal(room)}
+                onClick={() => setIsModalOpen(true)}
                 className="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold text-sm py-4 rounded-xl shadow-md shadow-amber-600/30 flex items-center justify-center gap-2 cursor-pointer transition transform active:scale-95"
               >
                 <FaCalendarCheck />
                 <span>Book This Room Now</span>
               </button>
-
-              <p className="text-[10px] text-center text-slate-400">
-                No payment charged until reservation details are reviewed in the next step.
-              </p>
             </div>
           </div>
         </div>
 
-        {/* RECOMMENDED SIMILAR ROOMS */}
-        <div className="pt-12 border-t border-slate-200/80 space-y-6">
-          <h3 className="font-serif text-2xl font-bold text-slate-900">
-            You Might Also Like
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {similarRooms.map((simRoom) => (
-              <RoomCard key={simRoom.id} room={simRoom} />
-            ))}
-          </div>
-        </div>
+        {/* Modal render */}
+        <BookingModal
+          room={room}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          initialConfig={{
+            stayType,
+            checkIn,
+            checkOut,
+            stayDate,
+            startTime,
+            durationHours,
+            adults,
+          }}
+        />
       </div>
     </div>
   );

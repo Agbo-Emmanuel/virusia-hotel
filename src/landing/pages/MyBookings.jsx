@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useBooking } from "../../context/BookingContext";
+import { formatPrice } from "../../utils/formatMoney";
 import {
   FaCalendarCheck,
   FaSearch,
@@ -17,8 +17,8 @@ import {
 } from "react-icons/fa";
 
 const MyBookings = () => {
-  const { savedBookings, cancelBooking, formatPrice } = useBooking();
   const navigate = useNavigate();
+  const [savedBookings, setSavedBookings] = useState([]);
 
   const [searchCode, setSearchCode] = useState("");
   const [activeTab, setActiveTab] = useState("all"); // 'all', 'confirmed', 'cancelled'

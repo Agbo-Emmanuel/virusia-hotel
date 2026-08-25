@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useBooking } from "../../context/BookingContext";
 import {
   FaBed,
   FaCalendarCheck,
@@ -15,11 +14,6 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { savedBookings } = useBooking();
-
-  const activeBookingsCount = savedBookings.filter(
-    (b) => b.status === "Confirmed"
-  ).length;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,11 +30,11 @@ const Header = () => {
   const navLinks = [
     { label: "Home", path: "/" },
     { label: "Rooms & Suites", path: "/rooms" },
-    { label: "Amenities", path: "/amenities" },
+    // { label: "Amenities", path: "/amenities" },
     {
-      label: "My Bookings",
-      path: "/my-bookings",
-      badge: activeBookingsCount,
+      // label: "My Bookings",
+      // path: "/my-bookings",
+      // badge: activeBookingsCount,
     },
     { label: "Contact", path: "/contact" },
   ];
@@ -113,11 +107,11 @@ const Header = () => {
                 }`}
               >
                 {link.label}
-                {link.badge > 0 && (
+                {/* {link.badge > 0 && (
                   <span className="bg-amber-500 text-white text-[10px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">
                     {link.badge}
                   </span>
-                )}
+                )} */}
                 {isActive(link.path) && (
                   <span className="absolute bottom-0 left-0 w-full h-0.5 bg-amber-600 rounded-full animate-fade-in" />
                 )}

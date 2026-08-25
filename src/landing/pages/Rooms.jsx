@@ -1,12 +1,27 @@
-import React, { useMemo } from "react";
-import { useBooking } from "../../context/BookingContext";
+import { useState, useMemo } from "react";
 import { ROOMS_DATA, ROOM_CATEGORIES } from "../../data/rooms";
 import RoomCard from "../components/RoomCard";
 import RoomFilter from "../components/RoomFilter";
+import BookingModal from "../components/BookingModal";
 import { FaSlidersH, FaSearch, FaTimes, FaUndo } from "react-icons/fa";
 
+const defaultFilters = {
+  searchQuery: "",
+  category: "all",
+  maxPrice: 2000,
+  adults: 1,
+  children: 0,
+  checkIn: new Date().toISOString().split("T")[0],
+  checkOut: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
+  selectedAmenities: [],
+  sortBy: "recommended",
+};
+
 const Rooms = () => {
-  const { filters, setFilters, resetFilters } = useBooking();
+  const [filters, setFilters] = useState(defaultFilters);
+  const [selectedBookingRoom, setSelectedBookingRoom] = useState(null);
+
+  const resetFilters = () => setFilters(defaultFilters);
 
   // Filter & Sort rooms dynamically
   const filteredRooms = useMemo(() => {
@@ -19,7 +34,12 @@ const Rooms = () => {
         const matchesTagline = room.tagline.toLowerCase().includes(query);
         const matchesCategory = room.category.toLowerCase().includes(query);
 
-        if (!matchesTitle && !matchesDesc && !matchesTagline && !matchesCategory) {
+        if (
+          !matchesTitle &&
+          !matchesDesc &&
+          !matchesTagline &&
+          !matchesCategory
+        ) {
           return false;
         }
       }
@@ -35,7 +55,8 @@ const Rooms = () => {
       }
 
       // 4. Guest Capacity Filter
-      const totalRequestedGuests = (filters.adults || 1) + (filters.children || 0);
+      const totalRequestedGuests =
+        (filters.adults || 1) + (filters.children || 0);
       if (room.capacity.maxGuests < totalRequestedGuests) {
         return false;
       }
@@ -43,7 +64,7 @@ const Rooms = () => {
       // 5. Amenities Multi-select Filter
       if (filters.selectedAmenities.length > 0) {
         const hasAllSelected = filters.selectedAmenities.every((amenityId) =>
-          room.amenities.includes(amenityId)
+          room.amenities.includes(amenityId),
         );
         if (!hasAllSelected) return false;
       }
@@ -71,27 +92,9 @@ const Rooms = () => {
             Rooms & Luxury Suites
           </h1>
           <p className="text-slate-500 text-sm max-w-xl mx-auto font-medium">
-            Explore our curated collection of oceanfront rooms, executive business suites, and penthouse residences.
+            Explore our curated collection of oceanfront rooms, executive
+            business suites, and penthouse residences.
           </p>
-
-          {/* Quick Category Filter Pills */}
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
-            {ROOM_CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() =>
-                  setFilters((prev) => ({ ...prev, category: cat.id }))
-                }
-                className={`text-xs font-bold px-4 py-2 rounded-full transition-all cursor-pointer ${
-                  filters.category === cat.id
-                    ? "bg-amber-600 text-white shadow-md shadow-amber-600/20"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -100,7 +103,12 @@ const Rooms = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* SIDEBAR FILTER */}
           <div className="lg:col-span-1">
-            <RoomFilter isSidebar={true} />
+            <RoomFilter
+              isSidebar={true}
+              filters={filters}
+              setFilters={setFilters}
+              resetFilters={resetFilters}
+            />
           </div>
 
           {/* ROOMS LISTING AREA */}
@@ -108,8 +116,11 @@ const Rooms = () => {
             {/* Top Stats & Sorting Bar */}
             <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-xs font-bold text-slate-700">
-                Showing <span className="text-amber-700 text-sm font-serif">{filteredRooms.length}</span> of{" "}
-                {ROOMS_DATA.length} Available Rooms
+                Showing{" "}
+                <span className="text-amber-700 text-sm font-serif">
+                  {filteredRooms.length}
+                </span>{" "}
+                of {ROOMS_DATA.length} Available Rooms
               </div>
 
               {/* Active Filters Indicators */}
@@ -135,7 +146,7 @@ const Rooms = () => {
                   )}
                   <button
                     onClick={resetFilters}
-                    className="text-[11px] font-semibold text-slate-500 hover:text-amber-600 underline"
+                    className="text-[11px] font-semibold text-slate-500 hover:text-amber-600 underline cursor-pointer"
                   >
                     Clear All
                   </button>
@@ -147,7 +158,11 @@ const Rooms = () => {
             {filteredRooms.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {filteredRooms.map((room) => (
-                  <RoomCard key={room.id} room={room} />
+                  <RoomCard
+                    key={room.id}
+                    room={room}
+                    onBookNow={(r) => setSelectedBookingRoom(r)}
+                  />
                 ))}
               </div>
             ) : (
@@ -159,7 +174,8 @@ const Rooms = () => {
                   No Rooms Matched Your Search
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Try adjusting your price range, date range, or clear selected amenity filters to view available suites.
+                  Try adjusting your price range, date range, or clear selected
+                  amenity filters to view available suites.
                 </p>
                 <button
                   onClick={resetFilters}
@@ -173,6 +189,13 @@ const Rooms = () => {
           </div>
         </div>
       </div>
+
+      {/* Booking Modal Popup */}
+      <BookingModal
+        room={selectedBookingRoom}
+        isOpen={!!selectedBookingRoom}
+        onClose={() => setSelectedBookingRoom(null)}
+      />
     </div>
   );
 };

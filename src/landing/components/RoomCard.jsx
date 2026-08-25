@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useBooking } from "../../context/BookingContext";
 import {
   FaStar,
   FaUsers,
@@ -14,9 +13,9 @@ import {
   FaChevronLeft,
   FaChevronRight,
 } from "react-icons/fa";
+import { formatPrice } from "../../utils/formatMoney";
 
-const RoomCard = ({ room }) => {
-  const { openBookingModal, formatPrice } = useBooking();
+const RoomCard = ({ room, onBookNow }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const nextImage = (e) => {
@@ -29,7 +28,7 @@ const RoomCard = ({ room }) => {
     e.preventDefault();
     e.stopPropagation();
     setCurrentImageIndex(
-      (prev) => (prev - 1 + room.images.length) % room.images.length
+      (prev) => (prev - 1 + room.images.length) % room.images.length,
     );
   };
 
@@ -45,20 +44,20 @@ const RoomCard = ({ room }) => {
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
 
         {/* Badge Tag */}
-        {room.badge && (
+        {/* {room.badge && (
           <span className="absolute top-4 left-4 bg-gradient-to-r from-amber-600 to-amber-700 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md tracking-wide uppercase">
             {room.badge}
           </span>
-        )}
+        )} */}
 
         {/* Rating Badge */}
-        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md text-slate-800 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1 border border-white/50">
+        {/* <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md text-slate-800 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1 border border-white/50">
           <FaStar className="text-amber-500 text-xs" />
           <span>{room.rating}</span>
           <span className="text-slate-400 font-normal">
             ({room.reviewsCount})
           </span>
-        </div>
+        </div> */}
 
         {/* Image Controls */}
         {room.images.length > 1 && (
@@ -102,7 +101,10 @@ const RoomCard = ({ room }) => {
             <span>{room.category} Room</span>
           </div>
 
-          <Link to={`/rooms/${room.id}`} className="block group-hover:text-amber-600 transition">
+          <Link
+            to={`/rooms/${room.id}`}
+            className="block group-hover:text-amber-600 transition"
+          >
             <h3 className="font-serif text-xl font-bold text-slate-900 leading-snug">
               {room.title}
             </h3>
@@ -112,7 +114,7 @@ const RoomCard = ({ room }) => {
           </p>
 
           {/* Quick Specs */}
-          <div className="grid grid-cols-3 gap-2 py-3.5 my-3 border-y border-slate-100 text-xs text-slate-600 font-medium">
+          <div className="grid grid-cols-3 gap-2 py-3.5 my-3 border-t border-slate-100 text-xs text-slate-600 font-medium">
             <div className="flex items-center gap-1.5">
               <FaUsers className="text-amber-600 text-xs shrink-0" />
               <span>Up to {room.capacity.maxGuests} Guests</span>
@@ -128,7 +130,7 @@ const RoomCard = ({ room }) => {
           </div>
 
           {/* Key Amenities preview */}
-          <div className="flex items-center gap-2 text-xs text-slate-500 pt-0.5">
+          {/* <div className="flex items-center gap-2 text-xs text-slate-500 pt-0.5">
             {room.amenities.includes("wifi") && (
               <span className="bg-slate-100 px-2 py-1 rounded-md flex items-center gap-1">
                 <FaWifi className="text-slate-500 text-[10px]" /> Wi-Fi
@@ -144,7 +146,7 @@ const RoomCard = ({ room }) => {
                 <FaCoffee className="text-slate-500 text-[10px]" /> Breakfast
               </span>
             )}
-          </div>
+          </div> */}
         </div>
 
         {/* Pricing & CTA */}
@@ -154,13 +156,15 @@ const RoomCard = ({ room }) => {
               <span className="font-serif text-2xl font-bold text-slate-900">
                 {formatPrice(room.price)}
               </span>
-              <span className="text-xs text-slate-500 font-medium">/ night</span>
+              <span className="text-xs text-slate-500 font-medium">
+                / night
+              </span>
             </div>
-            {room.originalPrice && (
+            {/* {room.originalPrice && (
               <span className="text-xs text-slate-400 line-through">
                 {formatPrice(room.originalPrice)}
               </span>
-            )}
+            )} */}
           </div>
 
           <div className="flex items-center gap-2">
@@ -172,7 +176,7 @@ const RoomCard = ({ room }) => {
               <FaArrowRight className="text-sm" />
             </Link>
             <button
-              onClick={() => openBookingModal(room)}
+              onClick={() => onBookNow && onBookNow(room)}
               className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md shadow-amber-600/20 hover:shadow-lg transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <FaCalendarCheck />

@@ -1,6 +1,6 @@
 import React from "react";
-import { useBooking } from "../../context/BookingContext";
 import { ROOM_CATEGORIES, AMENITIES_LIST } from "../../data/rooms";
+import { formatPrice } from "../../utils/formatMoney";
 import {
   FaSearch,
   FaSlidersH,
@@ -11,8 +11,13 @@ import {
   FaFilter,
 } from "react-icons/fa";
 
-const RoomFilter = ({ isSidebar = false }) => {
-  const { filters, setFilters, resetFilters, formatPrice } = useBooking();
+const RoomFilter = ({
+  isSidebar = false,
+  filters,
+  setFilters,
+  resetFilters,
+}) => {
+  if (!filters || !setFilters) return null;
 
   const handleAmenityToggle = (amenityId) => {
     setFilters((prev) => {
@@ -98,26 +103,6 @@ const RoomFilter = ({ isSidebar = false }) => {
         </div>
       </div>
 
-      {/* Room Category Tabs / Select */}
-      <div>
-        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-          Room Category
-        </label>
-        <select
-          value={filters.category}
-          onChange={(e) =>
-            setFilters((prev) => ({ ...prev, category: e.target.value }))
-          }
-          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-medium focus:bg-white focus:outline-none focus:border-amber-500 transition"
-        >
-          {ROOM_CATEGORIES.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
       {/* Guests Counter */}
       <div>
         <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
@@ -190,79 +175,6 @@ const RoomFilter = ({ isSidebar = false }) => {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Max Price Range Slider */}
-      <div>
-        <div className="flex justify-between items-center text-xs mb-2">
-          <label className="font-bold text-slate-700 uppercase tracking-wider">
-            Max Price / Night
-          </label>
-          <span className="font-bold text-amber-700 text-sm">
-            {formatPrice(filters.maxPrice)}
-          </span>
-        </div>
-        <input
-          type="range"
-          min="100"
-          max="1500"
-          step="50"
-          value={filters.maxPrice}
-          onChange={(e) =>
-            setFilters((prev) => ({ ...prev, maxPrice: Number(e.target.value) }))
-          }
-          className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
-        />
-        <div className="flex justify-between text-[10px] text-slate-400 mt-1 font-semibold">
-          <span>$100</span>
-          <span>$750</span>
-          <span>$1,500+</span>
-        </div>
-      </div>
-
-      {/* Amenities Multi-select Checkboxes */}
-      <div>
-        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">
-          Room Amenities
-        </label>
-        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-          {AMENITIES_LIST.map((amenity) => {
-            const checked = filters.selectedAmenities.includes(amenity.id);
-            return (
-              <label
-                key={amenity.id}
-                className="flex items-center gap-2.5 text-xs text-slate-700 cursor-pointer hover:text-slate-900 select-none"
-              >
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => handleAmenityToggle(amenity.id)}
-                  className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
-                />
-                <span>{amenity.label}</span>
-              </label>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Sort By Dropdown */}
-      <div>
-        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-          Sort Results By
-        </label>
-        <select
-          value={filters.sortBy}
-          onChange={(e) =>
-            setFilters((prev) => ({ ...prev, sortBy: e.target.value }))
-          }
-          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-medium focus:bg-white focus:outline-none focus:border-amber-500 transition"
-        >
-          <option value="recommended">Featured & Recommended</option>
-          <option value="price-asc">Price: Low to High</option>
-          <option value="price-desc">Price: High to Low</option>
-          <option value="rating">Guest Rating: High to Low</option>
-        </select>
       </div>
     </div>
   );
