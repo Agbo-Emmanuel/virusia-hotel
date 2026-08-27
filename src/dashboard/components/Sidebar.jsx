@@ -35,7 +35,7 @@ const Sidebar = ({
     { label: "Bookings", path: "/admin/bookings", icon: FaCalendarCheck },
     { label: "Rooms & Status", path: "/admin/rooms", icon: FaBed },
     { label: "Create Room", path: "/admin/create-room", icon: FaBed },
-    { label: "Guests Directory", path: "/admin/guests", icon: FaUsers },
+    // { label: "Guests Directory", path: "/admin/guests", icon: FaUsers },
   ];
 
   const superAdminNav = [
@@ -57,11 +57,11 @@ const Sidebar = ({
       path: "/super-admin/admins",
       icon: FaUserShield,
     },
-    {
-      label: "System Settings",
-      path: "/super-admin/settings",
-      icon: FaSlidersH,
-    },
+    // {
+    //   label: "System Settings",
+    //   path: "/super-admin/settings",
+    //   icon: FaSlidersH,
+    // },
   ];
 
   const navItems = isAdmin ? adminNav : superAdminNav;
@@ -195,8 +195,7 @@ const Sidebar = ({
 
         {/* Switch Role & Footer Actions */}
         <div className="p-3 border-t border-slate-800/80 bg-slate-950/60 space-y-1">
-          {/* Quick Switch Role Button */}
-          <button
+          {/* <button
             onClick={handleRoleSwitch}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/60 hover:bg-slate-800 transition-colors border border-slate-700/50 cursor-pointer"
             title={
@@ -211,7 +210,7 @@ const Sidebar = ({
                 Switch to {isAdmin ? "Super Admin" : "Admin"}
               </span>
             )}
-          </button>
+          </button> */}
 
           {/* Return to Guest Site */}
           <Link

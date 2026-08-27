@@ -78,8 +78,11 @@ const TopHeader = ({ role = "admin", setMobileOpen, collapsed }) => {
             <FaBars className="text-xl" />
           </button>
 
-          {/* Search Form */}
-          <form onSubmit={handleSearchSubmit} className="relative max-w-md w-full hidden sm:block">
+          {/* Search Form
+          <form
+            onSubmit={handleSearchSubmit}
+            className="relative max-w-md w-full hidden sm:block"
+          >
             <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
             <input
               type="text"
@@ -92,13 +95,13 @@ const TopHeader = ({ role = "admin", setMobileOpen, collapsed }) => {
               }
               className="w-full pl-10 pr-4 py-2.5 bg-slate-100/80 hover:bg-slate-100 focus:bg-white text-slate-800 text-sm rounded-xl border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all"
             />
-          </form>
+          </form> */}
         </div>
 
         {/* Right Side: Role Switcher, Notifications, Profile */}
         <div className="flex items-center gap-3">
           {/* Quick Role Switcher Pill */}
-          <button
+          {/* <button
             onClick={handleRoleToggle}
             className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer shadow-xs hover:scale-105 ${
               isAdmin
@@ -108,9 +111,9 @@ const TopHeader = ({ role = "admin", setMobileOpen, collapsed }) => {
           >
             <FaExchangeAlt className="text-xs" />
             <span>{isAdmin ? "Admin View" : "Super Admin View"}</span>
-          </button>
+          </button> */}
 
-          {/* Notification Bell */}
+          {/* Notification Bell
           <div className="relative">
             <button
               onClick={() => {
@@ -124,11 +127,13 @@ const TopHeader = ({ role = "admin", setMobileOpen, collapsed }) => {
               <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-amber-600 rounded-full ring-2 ring-white animate-pulse" />
             </button>
 
-            {/* Notification Dropdown */}
+            Notification Dropdown
             {showNotifications && (
               <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-100 py-3 z-50 animate-fade-in">
                 <div className="px-4 pb-3 border-b border-slate-100 flex items-center justify-between">
-                  <h4 className="font-bold text-slate-900 text-sm">Notifications</h4>
+                  <h4 className="font-bold text-slate-900 text-sm">
+                    Notifications
+                  </h4>
                   <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
                     2 New
                   </span>
@@ -146,10 +151,16 @@ const TopHeader = ({ role = "admin", setMobileOpen, collapsed }) => {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <p className="text-xs font-bold text-slate-900">{item.title}</p>
-                          <span className="text-[10px] text-slate-400">{item.time}</span>
+                          <p className="text-xs font-bold text-slate-900">
+                            {item.title}
+                          </p>
+                          <span className="text-[10px] text-slate-400">
+                            {item.time}
+                          </span>
                         </div>
-                        <p className="text-xs text-slate-600 mt-1">{item.desc}</p>
+                        <p className="text-xs text-slate-600 mt-1">
+                          {item.desc}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -167,7 +178,7 @@ const TopHeader = ({ role = "admin", setMobileOpen, collapsed }) => {
                 </div>
               </div>
             )}
-          </div>
+          </div> */}
 
           {/* User Profile */}
           <div className="relative">
