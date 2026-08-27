@@ -29,6 +29,7 @@ import SuperAdminRooms from "./dashboard/superAdmin/SuperAdminRooms";
 import SuperAdminBookings from "./dashboard/superAdmin/SuperAdminBookings";
 import SuperAdminAdmins from "./dashboard/superAdmin/SuperAdminAdmins";
 import SuperAdminSettings from "./dashboard/superAdmin/SuperAdminSettings";
+import CreateRoom from "./dashboard/superAdmin/CreateRoom";
 
 const App = () => {
   return (
@@ -54,16 +55,27 @@ const App = () => {
           <Route path="/admin/bookings" element={<AdminBookings />} />
           <Route path="/admin/rooms" element={<AdminRooms />} />
           <Route path="/admin/guests" element={<AdminGuests />} />
+          <Route path="/admin/create-room" element={<CreateRoom />} />
         </Route>
 
         {/* Super Admin Dashboard Flow */}
         <Route element={<DashboardLanding defaultRole="superAdmin" />}>
           <Route path="/super-admin" element={<SuperAdminOverview />} />
-          <Route path="/super-admin/overview" element={<SuperAdminOverview />} />
+          <Route
+            path="/super-admin/overview"
+            element={<SuperAdminOverview />}
+          />
           <Route path="/super-admin/rooms" element={<SuperAdminRooms />} />
-          <Route path="/super-admin/bookings" element={<SuperAdminBookings />} />
+          <Route
+            path="/super-admin/bookings"
+            element={<SuperAdminBookings />}
+          />
           <Route path="/super-admin/admins" element={<SuperAdminAdmins />} />
-          <Route path="/super-admin/settings" element={<SuperAdminSettings />} />
+          <Route
+            path="/super-admin/settings"
+            element={<SuperAdminSettings />}
+          />
+          <Route path="/super-admin/create-room" element={<CreateRoom />} />
         </Route>
 
         {/* Fallback 404 */}

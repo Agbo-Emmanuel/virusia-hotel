@@ -18,7 +18,13 @@ import {
   FaTimes,
 } from "react-icons/fa";
 
-const Sidebar = ({ role = "admin", collapsed, setCollapsed, mobileOpen, setMobileOpen }) => {
+const Sidebar = ({
+  role = "admin",
+  collapsed,
+  setCollapsed,
+  mobileOpen,
+  setMobileOpen,
+}) => {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -28,22 +34,43 @@ const Sidebar = ({ role = "admin", collapsed, setCollapsed, mobileOpen, setMobil
     { label: "Overview", path: "/admin", exact: true, icon: FaChartPie },
     { label: "Bookings", path: "/admin/bookings", icon: FaCalendarCheck },
     { label: "Rooms & Status", path: "/admin/rooms", icon: FaBed },
+    { label: "Create Room", path: "/admin/create-room", icon: FaBed },
     { label: "Guests Directory", path: "/admin/guests", icon: FaUsers },
   ];
 
   const superAdminNav = [
-    { label: "Executive Overview", path: "/super-admin", exact: true, icon: FaChartLine },
+    {
+      label: "Executive Overview",
+      path: "/super-admin",
+      exact: true,
+      icon: FaChartLine,
+    },
     { label: "List of Rooms", path: "/super-admin/rooms", icon: FaThList },
-    { label: "All Bookings", path: "/super-admin/bookings", icon: FaConciergeBell },
-    { label: "Staff & Admins", path: "/super-admin/admins", icon: FaUserShield },
-    { label: "System Settings", path: "/super-admin/settings", icon: FaSlidersH },
+    { label: "Create Room", path: "/super-admin/create-room", icon: FaBed },
+    {
+      label: "All Bookings",
+      path: "/super-admin/bookings",
+      icon: FaConciergeBell,
+    },
+    {
+      label: "Staff & Admins",
+      path: "/super-admin/admins",
+      icon: FaUserShield,
+    },
+    {
+      label: "System Settings",
+      path: "/super-admin/settings",
+      icon: FaSlidersH,
+    },
   ];
 
   const navItems = isAdmin ? adminNav : superAdminNav;
 
   const isActive = (item) => {
     if (item.exact) {
-      return location.pathname === item.path || location.pathname === `${item.path}/`;
+      return (
+        location.pathname === item.path || location.pathname === `${item.path}/`
+      );
     }
     return location.pathname.startsWith(item.path);
   };
@@ -96,7 +123,11 @@ const Sidebar = ({ role = "admin", collapsed, setCollapsed, mobileOpen, setMobil
             className="hidden lg:flex p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
             aria-label="Toggle Sidebar"
           >
-            {collapsed ? <FaChevronRight className="text-sm" /> : <FaChevronLeft className="text-sm" />}
+            {collapsed ? (
+              <FaChevronRight className="text-sm" />
+            ) : (
+              <FaChevronLeft className="text-sm" />
+            )}
           </button>
 
           {/* Mobile Close Button */}
@@ -150,7 +181,9 @@ const Sidebar = ({ role = "admin", collapsed, setCollapsed, mobileOpen, setMobil
                 }`}
                 title={collapsed ? item.label : undefined}
               >
-                <Icon className={`text-lg shrink-0 ${active ? "text-white" : "text-slate-400 group-hover:text-amber-400"}`} />
+                <Icon
+                  className={`text-lg shrink-0 ${active ? "text-white" : "text-slate-400 group-hover:text-amber-400"}`}
+                />
                 {!collapsed && <span className="truncate">{item.label}</span>}
                 {active && !collapsed && (
                   <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
@@ -166,7 +199,11 @@ const Sidebar = ({ role = "admin", collapsed, setCollapsed, mobileOpen, setMobil
           <button
             onClick={handleRoleSwitch}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/60 hover:bg-slate-800 transition-colors border border-slate-700/50 cursor-pointer"
-            title={collapsed ? `Switch to ${isAdmin ? "Super Admin" : "Admin"}` : undefined}
+            title={
+              collapsed
+                ? `Switch to ${isAdmin ? "Super Admin" : "Admin"}`
+                : undefined
+            }
           >
             <FaExchangeAlt className="text-amber-400 shrink-0 text-sm" />
             {!collapsed && (
@@ -183,7 +220,9 @@ const Sidebar = ({ role = "admin", collapsed, setCollapsed, mobileOpen, setMobil
             title={collapsed ? "Guest Landing Site" : undefined}
           >
             <FaGlobe className="shrink-0 text-sm" />
-            {!collapsed && <span className="truncate">View Public Website</span>}
+            {!collapsed && (
+              <span className="truncate">View Public Website</span>
+            )}
           </Link>
         </div>
       </aside>

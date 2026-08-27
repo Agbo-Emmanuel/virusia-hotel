@@ -61,9 +61,7 @@ const RoomDetail = () => {
 
   const nights = calculateNights();
   const baseTotal =
-    stayType === "hour"
-      ? HOURLY_RATE * durationHours
-      : room.price * nights;
+    stayType === "hour" ? HOURLY_RATE * durationHours : room.price * nights;
   const estTax = Math.round(baseTotal * 0.1);
   const grandTotal = baseTotal + estTax;
 
@@ -231,7 +229,7 @@ const RoomDetail = () => {
             </div> */}
 
             {/* Policies */}
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 space-y-4 text-xs">
+            {/* <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 space-y-4 text-xs">
               <h3 className="font-serif text-xl font-bold text-slate-900">
                 Hotel Policies & Guidelines
               </h3>
@@ -274,7 +272,7 @@ const RoomDetail = () => {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Reviews Section */}
             {/* <div className="space-y-6">
@@ -334,7 +332,9 @@ const RoomDetail = () => {
                 </span>
                 <div className="flex items-baseline gap-1.5">
                   <span className="font-serif text-3xl font-bold text-slate-900">
-                    {stayType === "hour" ? formatPrice(HOURLY_RATE) : formatPrice(room.price)}
+                    {stayType === "hour"
+                      ? formatPrice(HOURLY_RATE)
+                      : formatPrice(room.price)}
                   </span>
                   <span className="text-xs text-slate-500 font-medium">
                     {stayType === "hour" ? "/ hour" : "/ night"}
@@ -353,7 +353,9 @@ const RoomDetail = () => {
                       : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
-                  <FaMoon className={stayType === "night" ? "text-amber-600" : ""} />
+                  <FaMoon
+                    className={stayType === "night" ? "text-amber-600" : ""}
+                  />
                   <span>Per Night</span>
                 </button>
                 <button
@@ -365,7 +367,9 @@ const RoomDetail = () => {
                       : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
-                  <FaClock className={stayType === "hour" ? "text-amber-600" : ""} />
+                  <FaClock
+                    className={stayType === "hour" ? "text-amber-600" : ""}
+                  />
                   <span>Per Hour</span>
                 </button>
               </div>
@@ -450,7 +454,8 @@ const RoomDetail = () => {
                     >
                       {[1, 2, 3, 4, 5, 6, 8, 10, 12, 24].map((h) => (
                         <option key={h} value={h}>
-                          {h} {h === 1 ? "Hour" : "Hours"} ({formatPrice(HOURLY_RATE * h)})
+                          {h} {h === 1 ? "Hour" : "Hours"} (
+                          {formatPrice(HOURLY_RATE * h)})
                         </option>
                       ))}
                     </select>

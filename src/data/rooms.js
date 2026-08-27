@@ -65,10 +65,6 @@ export const ROOMS_DATA = [
     tagline: "Breathtaking sea views with private sun deck",
     price: 320,
     originalPrice: 380,
-    rating: 4.9,
-    reviewsCount: 48,
-    badge: "Most Popular",
-    featured: true,
     capacity: {
       adults: 2,
       children: 1,
@@ -86,48 +82,7 @@ export const ROOMS_DATA = [
       "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
     ],
-    amenities: [
-      "wifi",
-      "ocean_view",
-      "balcony",
-      "breakfast",
-      "air_conditioning",
-      "king_bed",
-      "minibar",
-      "tv",
-      "safe",
-      "room_service",
-    ],
     description: `Indulge in unmatched elegance with our Deluxe Oceanfront Suite. Featuring floor-to-ceiling glass windows opening directly to your private teak balconies, this suite offers soothing ocean breezes and unobstructed sunset vistas. Furnished with hand-crafted Italian leather furniture and plush Egyptian cotton linens.`,
-    policies: {
-      checkIn: "3:00 PM",
-      checkOut: "12:00 PM",
-      cancellation: "Free cancellation up to 48 hours before check-in.",
-      smoking: "Non-smoking room",
-      pets: "Pets permitted upon prior notice (Max 10kg)",
-    },
-    reviews: [
-      {
-        id: "rev-1",
-        author: "Sophia Martinez",
-        avatar:
-          "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
-        rating: 5,
-        date: "August 18, 2026",
-        comment:
-          "Waking up to the ocean sound was absolute heaven! The breakfast served on the private balcony was fresh and high quality. Will return next season!",
-      },
-      {
-        id: "rev-2",
-        author: "David Chen",
-        avatar:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-        rating: 5,
-        date: "July 24, 2026",
-        comment:
-          "Impeccable service from check-in to check-out. The bed is exceptionally comfortable and the ocean view exceeded our expectations.",
-      },
-    ],
   },
   {
     id: "room-102",
@@ -136,10 +91,6 @@ export const ROOMS_DATA = [
     tagline: "The pinnacle of hospitality with dedicated private butler",
     price: 850,
     originalPrice: 990,
-    rating: 5.0,
-    reviewsCount: 32,
-    badge: "Ultra Luxury",
-    featured: true,
     capacity: {
       adults: 4,
       children: 2,
@@ -157,40 +108,7 @@ export const ROOMS_DATA = [
       "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1200&q=80",
     ],
-    amenities: [
-      "wifi",
-      "ocean_view",
-      "balcony",
-      "jacuzzi",
-      "breakfast",
-      "air_conditioning",
-      "king_bed",
-      "minibar",
-      "tv",
-      "room_service",
-      "workspace",
-      "safe",
-    ],
     description: `Designed for royalty and discerning travelers, the Presidential Royal Suite encompasses the entire top wing of Virusia Hotel. Boasting a private heated infinity splash pool, marble jacuzzi, dining area for 8 guests, and 24/7 personal butler service.`,
-    policies: {
-      checkIn: "2:00 PM (Priority Check-in)",
-      checkOut: "1:00 PM (Late Check-out)",
-      cancellation: "Free cancellation up to 72 hours before check-in.",
-      smoking: "Non-smoking room",
-      pets: "Pets permitted with luxury pet kit included",
-    },
-    reviews: [
-      {
-        id: "rev-3",
-        author: "Alexander Wright",
-        avatar:
-          "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80",
-        rating: 5,
-        date: "August 02, 2026",
-        comment:
-          "Unmatched luxury! Our butler Michael catered to every single need. The private jacuzzi on the balcony under the night sky is unforgettable.",
-      },
-    ],
   },
   {
     id: "room-103",
@@ -199,10 +117,6 @@ export const ROOMS_DATA = [
     tagline: "Sophisticated sanctuary equipped with ergonomic workspace",
     price: 240,
     originalPrice: 290,
-    rating: 4.8,
-    reviewsCount: 65,
-    badge: "Business Choice",
-    featured: false,
     capacity: {
       adults: 2,
       children: 0,
@@ -219,37 +133,8 @@ export const ROOMS_DATA = [
       "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
     ],
-    amenities: [
-      "wifi",
-      "workspace",
-      "breakfast",
-      "air_conditioning",
-      "king_bed",
-      "minibar",
-      "tv",
-      "safe",
-      "room_service",
-    ],
+
     description: `Tailored specifically for modern executives and remote professionals, this suite blends serene comfort with high productivity. Features high-speed fiber internet, multi-plug charging hubs, Herman Miller ergonomic chair, and access to the Executive Lounge.`,
-    policies: {
-      checkIn: "3:00 PM",
-      checkOut: "12:00 PM",
-      cancellation: "Free cancellation up to 24 hours before check-in.",
-      smoking: "Non-smoking room",
-      pets: "No pets allowed",
-    },
-    reviews: [
-      {
-        id: "rev-4",
-        author: "Elena Rostova",
-        avatar:
-          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
-        rating: 5,
-        date: "July 12, 2026",
-        comment:
-          "The Wi-Fi was blazing fast and the work desk setup was super comfortable during my work trip. Quiet atmosphere and delicious coffee!",
-      },
-    ],
   },
   {
     id: "room-104",
@@ -258,10 +143,6 @@ export const ROOMS_DATA = [
     tagline: "Spacious multi-bedroom layout perfect for family retreats",
     price: 450,
     originalPrice: 520,
-    rating: 4.9,
-    reviewsCount: 41,
-    badge: "Family Friendly",
-    featured: true,
     capacity: {
       adults: 4,
       children: 3,
@@ -278,36 +159,7 @@ export const ROOMS_DATA = [
       "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
     ],
-    amenities: [
-      "wifi",
-      "balcony",
-      "breakfast",
-      "air_conditioning",
-      "minibar",
-      "tv",
-      "safe",
-      "room_service",
-    ],
     description: `Designed with families in mind, the Grand Family Haven features interconnecting bedrooms, a separate living room, board games for kids, and direct ground-level access to our heated family swimming pool.`,
-    policies: {
-      checkIn: "3:00 PM",
-      checkOut: "11:00 AM",
-      cancellation: "Free cancellation up to 48 hours before check-in.",
-      smoking: "Non-smoking room",
-      pets: "Pets permitted with deposit",
-    },
-    reviews: [
-      {
-        id: "rev-5",
-        author: "Marcus Vance",
-        avatar:
-          "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=200&q=80",
-        rating: 5,
-        date: "August 10, 2026",
-        comment:
-          "Our kids loved the twin rooms and pool access! Plenty of space for 5 of us. Staff went above and beyond to provide extra toys and snacks.",
-      },
-    ],
   },
   {
     id: "room-105",
@@ -316,10 +168,6 @@ export const ROOMS_DATA = [
     tagline: "Warm contemporary comfort with premium essential amenities",
     price: 150,
     originalPrice: 180,
-    rating: 4.7,
-    reviewsCount: 89,
-    badge: "Best Value",
-    featured: false,
     capacity: {
       adults: 2,
       children: 0,
@@ -336,27 +184,7 @@ export const ROOMS_DATA = [
       "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=1200&q=80",
     ],
-    amenities: ["wifi", "air_conditioning", "tv", "safe", "room_service"],
     description: `A perfectly appointed haven featuring warm timber accents, plush Queen bed with premium feather pillows, rainfall shower, and HD smart TV. Ideal for solo travelers or couples seeking luxury at a moderate price point.`,
-    policies: {
-      checkIn: "3:00 PM",
-      checkOut: "12:00 PM",
-      cancellation: "Free cancellation up to 24 hours before check-in.",
-      smoking: "Non-smoking room",
-      pets: "No pets allowed",
-    },
-    reviews: [
-      {
-        id: "rev-6",
-        author: "Chloe Bennett",
-        avatar:
-          "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80",
-        rating: 4.5,
-        date: "June 29, 2026",
-        comment:
-          "Extremely clean, modern room with a very quiet AC. Great price for a 5-star hotel standard!",
-      },
-    ],
   },
   {
     id: "room-106",
@@ -365,10 +193,6 @@ export const ROOMS_DATA = [
     tagline: "Exclusive private roof terrace with heated jacuzzi pool",
     price: 1100,
     originalPrice: 1350,
-    rating: 5.0,
-    reviewsCount: 19,
-    badge: "Exclusive VIP",
-    featured: true,
     capacity: {
       adults: 4,
       children: 2,
@@ -385,40 +209,7 @@ export const ROOMS_DATA = [
       "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=1200&q=80",
     ],
-    amenities: [
-      "wifi",
-      "ocean_view",
-      "balcony",
-      "jacuzzi",
-      "breakfast",
-      "air_conditioning",
-      "king_bed",
-      "minibar",
-      "tv",
-      "room_service",
-      "workspace",
-      "safe",
-    ],
     description: `The crowning glory of Virusia Hotel. The Skyline Penthouse boasts a private open-air rooftop garden, heated Jacuzzi spa, private cocktail bar, soundproof cinema room, and private elevator entrance.`,
-    policies: {
-      checkIn: "2:00 PM",
-      checkOut: "2:00 PM",
-      cancellation: "Free cancellation up to 5 days before check-in.",
-      smoking: "Allowed on private outdoor balcony only",
-      pets: "Pets permitted",
-    },
-    reviews: [
-      {
-        id: "rev-7",
-        author: "Jonathan Sterling",
-        avatar:
-          "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80",
-        rating: 5,
-        date: "August 15, 2026",
-        comment:
-          "Celebrated our wedding anniversary here. Watching the stargazing sky from the private rooftop pool with champagne was priceless!",
-      },
-    ],
   },
 ];
 
