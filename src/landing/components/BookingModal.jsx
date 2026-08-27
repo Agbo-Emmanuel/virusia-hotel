@@ -1,934 +1,512 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { ADDONS } from "../../data/rooms";
-import { formatPrice } from "../../utils/formatMoney";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   FaTimes,
   FaCalendarAlt,
   FaUser,
   FaEnvelope,
-  FaPhone,
-  FaCreditCard,
-  FaCheckCircle,
+  FaPhoneAlt,
   FaBed,
-  FaConciergeBell,
-  FaShieldAlt,
-  FaPrint,
-  FaArrowRight,
-  FaArrowLeft,
   FaClock,
   FaMoon,
+  FaCalculator,
+  FaCheckCircle,
+  FaPrint,
+  FaUsers,
 } from "react-icons/fa";
+import { toast } from "react-toastify";
+import { formatPrice } from "../../utils/formatMoney";
+import { createBooking } from "../../services/booking.service";
 
-const HOURLY_RATE = 2000;
+const EMPTY_FORM = {
+  fullName: "",
+  email: "",
+  phoneNumber: "",
+  bookingType: "per-night",
+  bookedCheckIn: "",
+  bookedCheckOut: "",
+  numberOfHours: "",
+};
 
-const BookingModal = ({ room, isOpen, onClose, initialConfig = {} }) => {
-  const navigate = useNavigate();
-
-  // Form Step State (1: Dates & Addons, 2: Guest Details, 3: Payment, 4: Confirmed)
-  const [step, setStep] = useState(1);
-
-  // Stay Type State ('night' | 'hour')
-  const [stayType, setStayType] = useState(initialConfig.stayType || "night");
-
-  // Nightly Dates & Guests
-  const today = new Date().toISOString().split("T")[0];
-  const defaultOut = new Date(Date.now() + 86400000)
-    .toISOString()
-    .split("T")[0];
-
-  const [checkIn, setCheckIn] = useState(initialConfig.checkIn || today);
-  const [checkOut, setCheckOut] = useState(
-    initialConfig.checkOut || defaultOut,
-  );
-  const [adults, setAdults] = useState(
-    initialConfig.adults || room?.capacity?.adults || 2,
-  );
-  const [childrenCount, setChildrenCount] = useState(0);
-
-  // Hourly Stay State
-  const [stayDate, setStayDate] = useState(initialConfig.stayDate || today);
-  const [startTime, setStartTime] = useState(
-    initialConfig.startTime || "12:00",
-  );
-  const [durationHours, setDurationHours] = useState(
-    initialConfig.durationHours || 2,
-  );
-
-  // Selected Addons array
-  const [selectedAddons, setSelectedAddons] = useState([]);
-
-  // Guest Details
-  const [guestInfo, setGuestInfo] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    specialRequests: "",
-  });
-
-  // Payment method
-  const [paymentMethod, setPaymentMethod] = useState("card");
-  const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
-  const [cardExpiry, setCardExpiry] = useState("12/28");
-  const [cardCvc, setCardCvc] = useState("888");
-
-  // Confirmed booking state
+const BookingModal = ({ room, isOpen, onClose, onSuccess }) => {
+  const [bookingForm, setBookingForm] = useState(EMPTY_FORM);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState(null);
 
-  // Reset internal state when modal opens or initialConfig changes
+  // Initialize form dates when modal opens
   useEffect(() => {
     if (isOpen && room) {
-      setStep(1);
-      setSelectedAddons([]);
+      const now = new Date();
+      // Format now as datetime-local string (YYYY-MM-DDTHH:mm)
+      const tzOffset = now.getTimezoneOffset() * 60000;
+      const localISOTime = new Date(now.getTime() - tzOffset)
+        .toISOString()
+        .slice(0, 16);
+
+      const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const tomorrowISOTime = new Date(tomorrow.getTime() - tzOffset)
+        .toISOString()
+        .slice(0, 16);
+
+      setBookingForm({
+        fullName: "",
+        email: "",
+        phoneNumber: "",
+        bookingType: "per-night",
+        bookedCheckIn: localISOTime,
+        bookedCheckOut: tomorrowISOTime,
+        numberOfHours: "3",
+      });
       setConfirmedBooking(null);
-      setStayType(initialConfig.stayType || "night");
-      if (initialConfig.checkIn) setCheckIn(initialConfig.checkIn);
-      if (initialConfig.checkOut) setCheckOut(initialConfig.checkOut);
-      if (initialConfig.stayDate) setStayDate(initialConfig.stayDate);
-      if (initialConfig.startTime) setStartTime(initialConfig.startTime);
-      if (initialConfig.durationHours)
-        setDurationHours(Number(initialConfig.durationHours));
-      if (initialConfig.adults) setAdults(Number(initialConfig.adults));
     }
-  }, [isOpen, room, initialConfig]);
+  }, [isOpen, room]);
+
+  // Nights count calculation
+  const nightsCount = useMemo(() => {
+    if (bookingForm.bookingType !== "per-night") return 0;
+    if (!bookingForm.bookedCheckIn || !bookingForm.bookedCheckOut) return 0;
+    const start = new Date(bookingForm.bookedCheckIn);
+    const end = new Date(bookingForm.bookedCheckOut);
+    const diffMs = end - start;
+    if (diffMs <= 0) return 0;
+    return Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+  }, [
+    bookingForm.bookingType,
+    bookingForm.bookedCheckIn,
+    bookingForm.bookedCheckOut,
+  ]);
+
+  // Hours count calculation
+  const hoursCount = useMemo(() => {
+    if (bookingForm.bookingType !== "per-hour") return 0;
+    const n = Number(bookingForm.numberOfHours);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }, [bookingForm.bookingType, bookingForm.numberOfHours]);
+
+  // Calculate total amount based on room rates
+  const calculatedAmount = useMemo(() => {
+    if (!room) return 0;
+    const priceNight = room.pricePerNight ?? room.price ?? 0;
+    const priceHour = room.pricePerHour ?? 0;
+
+    if (bookingForm.bookingType === "per-night") {
+      return nightsCount * priceNight;
+    }
+    return hoursCount * priceHour;
+  }, [bookingForm.bookingType, nightsCount, hoursCount, room]);
 
   if (!isOpen || !room) return null;
 
-  // Calculate number of nights
-  const calculateNights = () => {
-    const start = new Date(checkIn);
-    const end = new Date(checkOut);
-    const diffTime = end.getTime() - start.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 3600 * 24));
-    return diffDays > 0 ? diffDays : 1;
+  const roomTitle = room.title || `Room ${room.roomNumber}`;
+  const roomType = room.roomType || room.category || "Standard";
+  const guests = room.numberOfGuest || room.capacity?.maxGuests || 2;
+  const priceNight = room.pricePerNight ?? room.price ?? 0;
+  const priceHour = room.pricePerHour ?? 0;
+  const roomImage = room.images?.[0] || "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80";
+
+  const handleFormChange = (field, value) => {
+    setBookingForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const nights = calculateNights();
-  const roomBaseTotal =
-    stayType === "hour" ? HOURLY_RATE * durationHours : room.price * nights;
-
-  // Addons total
-  const addonsTotal = selectedAddons.reduce((sum, addonId) => {
-    const addon = ADDONS.find((a) => a.id === addonId);
-    if (!addon) return sum;
-    if (stayType === "hour") {
-      return sum + addon.price;
-    }
-    return sum + (addon.perNight ? addon.price * nights : addon.price);
-  }, 0);
-
-  const subtotal = roomBaseTotal + addonsTotal;
-  const tax = Math.round(subtotal * 0.1);
-  const grandTotal = subtotal + tax;
-
-  const handleAddonToggle = (addonId) => {
-    setSelectedAddons((prev) =>
-      prev.includes(addonId)
-        ? prev.filter((id) => id !== addonId)
-        : [...prev, addonId],
-    );
+  const handleBookingTypeChange = (type) => {
+    setBookingForm((prev) => ({
+      ...prev,
+      bookingType: type,
+      bookedCheckOut: type === "per-hour" ? "" : prev.bookedCheckOut,
+      numberOfHours: type === "per-night" ? "" : prev.numberOfHours,
+    }));
   };
 
-  const handleGuestInfoSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!guestInfo.fullName || !guestInfo.email || !guestInfo.phone) {
+    const { fullName, email, phoneNumber, bookingType, bookedCheckIn } = bookingForm;
+
+    if (!fullName.trim() || !email.trim() || !phoneNumber.trim()) {
+      toast.error("Please provide your full name, email address, and phone number.");
       return;
     }
-    setStep(3);
-  };
+    if (!bookedCheckIn) {
+      toast.error("Please select a valid check-in date & time.");
+      return;
+    }
+    if (bookingType === "per-night" && !bookingForm.bookedCheckOut) {
+      toast.error("Please select a valid check-out date & time.");
+      return;
+    }
+    if (bookingType === "per-night" && nightsCount === 0) {
+      toast.error("Check-out time must be after check-in time.");
+      return;
+    }
+    if (bookingType === "per-hour" && !bookingForm.numberOfHours) {
+      toast.error("Please enter the duration in hours.");
+      return;
+    }
+    if (calculatedAmount <= 0) {
+      toast.error("Unable to calculate total booking amount. Please check parameters.");
+      return;
+    }
 
-  const handleConfirmPayment = (e) => {
-    e.preventDefault();
-
-    const bookingId = `VIR-${Math.floor(100000 + Math.random() * 900000)}`;
-
-    const addonDetails = selectedAddons.map((addonId) => {
-      const addon = ADDONS.find((a) => a.id === addonId);
-      const total =
-        stayType === "hour"
-          ? addon.price
-          : addon.perNight
-            ? addon.price * nights
-            : addon.price;
-      return {
-        id: addon.id,
-        name: addon.name,
-        price: addon.price,
-        perNight: addon.perNight,
-        total: total,
-      };
-    });
-
-    const newBookingData = {
-      id: bookingId,
-      room: {
-        id: room.id,
-        title: room.title,
-        category: room.category,
-        image: room.images[0],
-        price: room.price,
-      },
-      stayType,
-      checkIn: stayType === "night" ? checkIn : null,
-      checkOut: stayType === "night" ? checkOut : null,
-      nights: stayType === "night" ? nights : null,
-      stayDate: stayType === "hour" ? stayDate : null,
-      startTime: stayType === "hour" ? startTime : null,
-      durationHours: stayType === "hour" ? durationHours : null,
-      guests: { adults, children: childrenCount },
-      addons: addonDetails,
-      guestInfo,
-      payment: {
-        method: paymentMethod,
-        cardLast4: cardNumber.slice(-4) || "4242",
-        totalAmount: grandTotal,
-        baseTotal: roomBaseTotal,
-        addonsTotal: addonsTotal,
-        tax: tax,
-        status:
-          paymentMethod === "hotel" ? "Pay at Check-in" : "Paid & Confirmed",
-      },
+    const payload = {
+      bookingType,
+      roomID: room._id || room.id,
+      roomNumber: room.roomNumber || "001",
+      fullName: fullName.trim(),
+      email: email.trim(),
+      phoneNumber: phoneNumber.trim(),
+      amount: calculatedAmount,
+      bookedCheckIn: new Date(bookedCheckIn).toISOString(),
+      bookedCheckOut:
+        bookingType === "per-night" && bookingForm.bookedCheckOut
+          ? new Date(bookingForm.bookedCheckOut).toISOString()
+          : null,
+      numberOfHours:
+        bookingType === "per-hour" ? Number(bookingForm.numberOfHours) : null,
     };
 
-    setConfirmedBooking(newBookingData);
-    setStep(4);
+    setIsSubmitting(true);
+    try {
+      const response = await createBooking(payload);
+      toast.success(`Reservation confirmed for Room ${room.roomNumber || "001"}!`);
+      
+      setConfirmedBooking({
+        ...payload,
+        bookingRef: response?.booking?._id || `VIR-${Math.floor(100000 + Math.random() * 900000)}`,
+        roomTitle,
+        roomType,
+      });
+
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to process reservation. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm overflow-y-auto animate-fade-in">
-      <div className="bg-white rounded-3xl shadow-luxury border border-slate-100 w-full max-w-3xl overflow-hidden my-8 relative">
-        {/* Modal Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-6 relative">
-          <button
-            onClick={onClose}
-            className="absolute right-5 top-5 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer"
-            aria-label="Close modal"
-          >
-            <FaTimes />
-          </button>
+    <div
+      className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-luxury relative animate-scale-up my-6 max-h-[90vh] overflow-y-auto border border-slate-100 text-slate-800"
+      >
+        {/* Close Button */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-5 right-5 p-2.5 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition cursor-pointer"
+          aria-label="Close modal"
+        >
+          <FaTimes className="text-base" />
+        </button>
 
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-xl font-bold">
-              <FaBed />
+        {confirmedBooking ? (
+          /* Confirmation Receipt Screen */
+          <div className="text-center py-4 space-y-6">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl mx-auto border-4 border-emerald-200">
+              <FaCheckCircle />
             </div>
+
             <div>
-              <span className="text-[10px] tracking-widest text-amber-400 font-bold uppercase block">
-                Reservations Desk
+              <span className="bg-amber-100 text-amber-900 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-amber-300">
+                RESERVATION CONFIRMED
               </span>
-              <h2 className="font-serif text-2xl font-bold">{room.title}</h2>
+              <h3 className="font-serif text-2xl font-bold text-slate-900 mt-3">
+                Thank You, {confirmedBooking.fullName}!
+              </h3>
+              <p className="text-slate-500 text-xs mt-1">
+                Your reservation details have been registered. A confirmation copy will be sent to{" "}
+                <strong className="text-slate-800">{confirmedBooking.email}</strong>.
+              </p>
             </div>
-          </div>
 
-          {/* Steps Indicator */}
-          {step < 4 && (
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-700/60 text-xs">
-              <div
-                className={`flex items-center gap-2 ${
-                  step >= 1 ? "text-amber-400 font-bold" : "text-slate-500"
-                }`}
-              >
-                <span className="w-6 h-6 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center text-xs">
-                  1
+            {/* Receipt Summary Card */}
+            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 text-left space-y-3 text-xs">
+              <div className="flex justify-between items-center border-b border-slate-200 pb-3">
+                <span className="font-bold text-slate-500 uppercase tracking-wider">
+                  Room
                 </span>
-                <span>Dates & Addons</span>
-              </div>
-              <div className="w-8 h-0.5 bg-slate-700" />
-              <div
-                className={`flex items-center gap-2 ${
-                  step >= 2 ? "text-amber-400 font-bold" : "text-slate-500"
-                }`}
-              >
-                <span className="w-6 h-6 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center text-xs">
-                  2
+                <span className="font-serif text-base font-bold text-slate-900">
+                  Room {room.roomNumber} ({roomType})
                 </span>
-                <span>Guest Details</span>
-              </div>
-              <div className="w-8 h-0.5 bg-slate-700" />
-              <div
-                className={`flex items-center gap-2 ${
-                  step >= 3 ? "text-amber-400 font-bold" : "text-slate-500"
-                }`}
-              >
-                <span className="w-6 h-6 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center text-xs">
-                  3
-                </span>
-                <span>Payment</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Modal Body */}
-        <div className="p-6 max-h-[75vh] overflow-y-auto">
-          {/* STEP 1: DATES & ADDONS */}
-          {step === 1 && (
-            <div className="space-y-6">
-              {/* STAY TYPE TOGGLE */}
-              <div className="bg-slate-100 p-1.5 rounded-2xl flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setStayType("night")}
-                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                    stayType === "night"
-                      ? "bg-white text-slate-900 shadow-md border border-slate-200/80"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  <FaMoon
-                    className={
-                      stayType === "night" ? "text-amber-600" : "text-slate-400"
-                    }
-                  />
-                  <span>Per Night Stay ({formatPrice(room.price)}/night)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStayType("hour")}
-                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                    stayType === "hour"
-                      ? "bg-white text-amber-950 shadow-md border border-amber-300"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  <FaClock
-                    className={
-                      stayType === "hour" ? "text-amber-600" : "text-slate-400"
-                    }
-                  />
-                  <span>Per Hour Stay ({formatPrice(HOURLY_RATE)}/hr)</span>
-                </button>
               </div>
 
-              {/* Room Snapshot Card */}
-              <div className="bg-amber-50/60 border border-amber-200/70 rounded-2xl p-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={room.images[0]}
-                    alt={room.title}
-                    className="w-16 h-16 rounded-xl object-cover border border-amber-200"
-                  />
-                  <div>
-                    <h4 className="font-serif font-bold text-slate-900 text-base">
-                      {room.title}
-                    </h4>
-                    <p className="text-xs text-slate-600 font-medium">
-                      {room.specs.bed} • {room.specs.size}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="font-serif text-2xl font-bold text-slate-900 block">
-                    {stayType === "hour"
-                      ? formatPrice(HOURLY_RATE)
-                      : formatPrice(room.price)}
-                  </span>
-                  <span className="text-xs text-slate-500 font-medium">
-                    {stayType === "hour" ? "/ hour" : "/ night"}
-                  </span>
-                </div>
+              <div className="flex justify-between items-center py-1">
+                <span className="text-slate-500">Booking Type:</span>
+                <strong className="text-amber-800 uppercase font-bold">
+                  {confirmedBooking.bookingType === "per-night"
+                    ? `Per Night (${nightsCount} Night${nightsCount > 1 ? "s" : ""})`
+                    : `Per Hour (${hoursCount} Hour${hoursCount > 1 ? "s" : ""})`}
+                </strong>
               </div>
 
-              {/* DATES vs HOURLY SELECTORS */}
-              {stayType === "night" ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Check-In Date
-                    </label>
-                    <input
-                      type="date"
-                      min={today}
-                      value={checkIn}
-                      onChange={(e) => setCheckIn(e.target.value)}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Check-Out Date
-                    </label>
-                    <input
-                      type="date"
-                      min={checkIn}
-                      value={checkOut}
-                      onChange={(e) => setCheckOut(e.target.value)}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Guests
-                    </label>
-                    <select
-                      value={adults}
-                      onChange={(e) => setAdults(Number(e.target.value))}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
-                    >
-                      {[...Array(room.capacity?.maxGuests || 6)].map((_, i) => (
-                        <option key={i + 1} value={i + 1}>
-                          {i + 1} {i === 0 ? "Guest" : "Guests"}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Stay Date
-                    </label>
-                    <input
-                      type="date"
-                      min={today}
-                      value={stayDate}
-                      onChange={(e) => setStayDate(e.target.value)}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Start Time
-                    </label>
-                    <input
-                      type="time"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Duration (Hours)
-                    </label>
-                    <select
-                      value={durationHours}
-                      onChange={(e) => setDurationHours(Number(e.target.value))}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
-                    >
-                      {[1, 2, 3, 4, 5, 6, 8, 10, 12, 24].map((h) => (
-                        <option key={h} value={h}>
-                          {h} {h === 1 ? "Hour" : "Hours"} (
-                          {formatPrice(HOURLY_RATE * h)})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              <div className="flex justify-between items-center py-1">
+                <span className="text-slate-500">Check-In:</span>
+                <strong className="text-slate-800">
+                  {new Date(confirmedBooking.bookedCheckIn).toLocaleString()}
+                </strong>
+              </div>
+
+              {confirmedBooking.bookingType === "per-night" && (
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-slate-500">Check-Out:</span>
+                  <strong className="text-slate-800">
+                    {new Date(confirmedBooking.bookedCheckOut).toLocaleString()}
+                  </strong>
                 </div>
               )}
 
-              {/* Addons Selection */}
-              {/* <div>
-                <h3 className="font-serif font-bold text-slate-900 text-lg mb-1">
-                  Enhance Your Stay (Optional Add-ons)
-                </h3>
-                <p className="text-xs text-slate-500 mb-4">
-                  Select premium concierge services to personalize your experience.
-                </p>
+              <div className="flex justify-between items-center py-1">
+                <span className="text-slate-500">Guest Name:</span>
+                <strong className="text-slate-800">{confirmedBooking.fullName}</strong>
+              </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {ADDONS.map((addon) => {
-                    const isChecked = selectedAddons.includes(addon.id);
-                    return (
-                      <div
-                        key={addon.id}
-                        onClick={() => handleAddonToggle(addon.id)}
-                        className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${
-                          isChecked
-                            ? "bg-amber-50 border-amber-500 shadow-sm"
-                            : "bg-slate-50/70 border-slate-200 hover:border-slate-300"
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {}}
-                            className="mt-1 w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
-                          />
-                          <div>
-                            <span className="font-semibold text-slate-900 text-xs block">
-                              {addon.name}
-                            </span>
-                            <span className="text-[11px] text-slate-500 leading-tight block mt-0.5">
-                              {addon.description}
-                            </span>
-                          </div>
-                        </div>
-                        <span className="text-xs font-bold text-amber-800 shrink-0">
-                          +{formatPrice(addon.price)}
-                          {addon.perNight && stayType === "night" && (
-                            <span className="text-[10px] text-slate-400 font-normal">/n</span>
-                          )}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div> */}
+              <div className="flex justify-between items-center py-1">
+                <span className="text-slate-500">Phone:</span>
+                <strong className="text-slate-800">{confirmedBooking.phoneNumber}</strong>
+              </div>
 
-              {/* Price Calculation Bar & Next */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                <div>
-                  <span className="text-xs text-slate-500 font-medium block">
-                    Estimated Total (
-                    {stayType === "hour"
-                      ? `${durationHours} ${durationHours === 1 ? "hour" : "hours"} stay`
-                      : `${nights} ${nights === 1 ? "night" : "nights"}`}
-                    )
-                  </span>
-                  <span className="font-serif text-2xl font-bold text-slate-900">
-                    {formatPrice(grandTotal)}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setStep(2)}
-                  className="bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold px-6 py-3 rounded-xl shadow-md flex items-center gap-2 cursor-pointer transition"
-                >
-                  <span>Continue to Guest Info</span>
-                  <FaArrowRight className="text-xs" />
-                </button>
+              <div className="flex justify-between items-center pt-3 border-t border-slate-200 text-sm">
+                <span className="font-serif font-bold text-slate-900">Total Paid/Due:</span>
+                <span className="font-serif font-bold text-amber-700 text-lg">
+                  {formatPrice(confirmedBooking.amount)}
+                </span>
               </div>
             </div>
-          )}
 
-          {/* STEP 2: GUEST DETAILS */}
-          {step === 2 && (
-            <form onSubmit={handleGuestInfoSubmit} className="space-y-5">
-              <h3 className="font-serif font-bold text-slate-900 text-lg">
-                Primary Guest Information
-              </h3>
+            {/* CTAs */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-md flex items-center justify-center gap-2 transition cursor-pointer"
+              >
+                <FaPrint /> Print Receipt
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs px-6 py-3 rounded-xl transition cursor-pointer"
+              >
+                Close Window
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Main Customer Booking Form */
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Modal Header Banner */}
+            <div className="flex items-start gap-4 border-b border-slate-100 pb-4 pr-6">
+              <img
+                src={roomImage}
+                alt={roomTitle}
+                className="w-16 h-16 rounded-2xl object-cover border border-slate-200 shrink-0"
+              />
+              <div>
+                <span className="text-[10px] uppercase font-bold text-amber-600 tracking-wider block">
+                  Reserve Accommodation
+                </span>
+                <h3 className="text-xl font-extrabold text-slate-900 font-serif">
+                  Book Room {room.roomNumber}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5 capitalize flex items-center gap-2">
+                  <span>{roomType} Suite</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">
+                    <FaUsers className="text-amber-600" /> Up to {guests} Guests
+                  </span>
+                </p>
+              </div>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Stay Type Switcher */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Select Stay Duration Type
+              </label>
+              <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => handleBookingTypeChange("per-night")}
+                  className={`flex-1 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    bookingForm.bookingType === "per-night"
+                      ? "bg-white text-amber-800 shadow-sm border border-slate-200/80"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <FaMoon className={bookingForm.bookingType === "per-night" ? "text-amber-600" : "text-slate-400"} />
+                  <span>Per Night ({formatPrice(priceNight)})</span>
+                </button>
+                {priceHour > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => handleBookingTypeChange("per-hour")}
+                    className={`flex-1 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                      bookingForm.bookingType === "per-hour"
+                        ? "bg-white text-amber-800 shadow-sm border border-slate-200/80"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    <FaClock className={bookingForm.bookingType === "per-hour" ? "text-amber-600" : "text-slate-400"} />
+                    <span>Per Hour ({formatPrice(priceHour)})</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Guest Details Form */}
+            <div className="space-y-3.5 text-xs">
+              <h4 className="font-serif font-bold text-slate-900 text-sm border-b border-slate-100 pb-1">
+                Guest Contact Details
+              </h4>
+
+              <div>
+                <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                  <FaUser className="text-amber-600 text-xs" /> Full Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={bookingForm.fullName}
+                  onChange={(e) => handleFormChange("fullName", e.target.value)}
+                  placeholder="e.g. Eleanor Vance"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:bg-white focus:border-amber-500 outline-none transition"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Full Name *
+                  <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                    <FaEnvelope className="text-amber-600 text-xs" /> Email Address *
                   </label>
-                  <div className="relative">
-                    <FaUser className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs" />
-                    <input
-                      type="text"
-                      required
-                      value={guestInfo.fullName}
-                      onChange={(e) =>
-                        setGuestInfo({ ...guestInfo, fullName: e.target.value })
-                      }
-                      placeholder="e.g. Eleanor Vance"
-                      className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:border-amber-500 focus:outline-none transition"
-                    />
-                  </div>
+                  <input
+                    type="email"
+                    required
+                    value={bookingForm.email}
+                    onChange={(e) => handleFormChange("email", e.target.value)}
+                    placeholder="guest@example.com"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:bg-white focus:border-amber-500 outline-none transition"
+                  />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Email Address *
+                  <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                    <FaPhoneAlt className="text-amber-600 text-xs" /> Phone Number *
                   </label>
-                  <div className="relative">
-                    <FaEnvelope className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs" />
-                    <input
-                      type="email"
-                      required
-                      value={guestInfo.email}
-                      onChange={(e) =>
-                        setGuestInfo({ ...guestInfo, email: e.target.value })
-                      }
-                      placeholder="eleanor@example.com"
-                      className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:border-amber-500 focus:outline-none transition"
-                    />
-                  </div>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Phone Number (for SMS Confirmation) *
-                  </label>
-                  <div className="relative">
-                    <FaPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs" />
-                    <input
-                      type="tel"
-                      required
-                      value={guestInfo.phone}
-                      onChange={(e) =>
-                        setGuestInfo({ ...guestInfo, phone: e.target.value })
-                      }
-                      placeholder="+234 800 000 0000"
-                      className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:border-amber-500 focus:outline-none transition"
-                    />
-                  </div>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Special Requests & Arrival Details
-                  </label>
-                  <textarea
-                    rows="3"
-                    value={guestInfo.specialRequests}
-                    onChange={(e) =>
-                      setGuestInfo({
-                        ...guestInfo,
-                        specialRequests: e.target.value,
-                      })
-                    }
-                    placeholder="e.g. High floor preference, airport pickup flight #, extra pillows..."
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:border-amber-500 focus:outline-none transition"
+                  <input
+                    type="tel"
+                    required
+                    value={bookingForm.phoneNumber}
+                    onChange={(e) => handleFormChange("phoneNumber", e.target.value)}
+                    placeholder="0801 234 5678"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:bg-white focus:border-amber-500 outline-none transition"
                   />
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="px-4 py-2.5 text-slate-600 text-xs font-bold hover:text-slate-900 flex items-center gap-1.5 transition"
-                >
-                  <FaArrowLeft className="text-[10px]" />
-                  <span>Back</span>
-                </button>
-                <button
-                  type="submit"
-                  className="bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold px-6 py-3 rounded-xl shadow-md flex items-center gap-2 cursor-pointer transition"
-                >
-                  <span>Proceed to Payment</span>
-                  <FaArrowRight className="text-xs" />
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* STEP 3: PAYMENT & SUMMARY */}
-          {step === 3 && (
-            <form onSubmit={handleConfirmPayment} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Cost Breakdown Column */}
-                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 space-y-4">
-                  <h4 className="font-serif font-bold text-slate-900 text-base border-b border-slate-200 pb-2">
-                    Booking Summary
-                  </h4>
-
-                  <div className="space-y-2 text-xs text-slate-700">
-                    <div className="flex justify-between">
-                      <span>
-                        {room.title} (
-                        {stayType === "hour"
-                          ? `${durationHours} hrs stay @ ${formatPrice(HOURLY_RATE)}/hr`
-                          : `${nights} nights @ ${formatPrice(room.price)}/night`}
-                        )
-                      </span>
-                      <span className="font-semibold">
-                        {formatPrice(roomBaseTotal)}
-                      </span>
-                    </div>
-
-                    {selectedAddons.map((addonId) => {
-                      const addon = ADDONS.find((a) => a.id === addonId);
-                      const cost =
-                        stayType === "hour"
-                          ? addon.price
-                          : addon.perNight
-                            ? addon.price * nights
-                            : addon.price;
-                      return (
-                        <div
-                          key={addonId}
-                          className="flex justify-between text-slate-500"
-                        >
-                          <span>+ {addon.name}</span>
-                          <span>{formatPrice(cost)}</span>
-                        </div>
-                      );
-                    })}
-
-                    <div className="flex justify-between text-slate-500">
-                      <span>Occupancy Tax & Service Fee (10%)</span>
-                      <span>{formatPrice(tax)}</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-200 flex justify-between items-baseline">
-                    <span className="font-serif font-bold text-slate-900 text-lg">
-                      Total Amount
-                    </span>
-                    <span className="font-serif font-bold text-amber-700 text-2xl">
-                      {formatPrice(grandTotal)}
-                    </span>
-                  </div>
-
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-[11px] text-emerald-800 flex items-center gap-2">
-                    <FaShieldAlt className="text-emerald-600 shrink-0 text-sm" />
-                    <span>Instant confirmation & free cancellation.</span>
-                  </div>
-                </div>
-
-                {/* Payment Option Column */}
-                <div className="space-y-4">
-                  <h4 className="font-serif font-bold text-slate-900 text-base">
-                    Select Payment Method
-                  </h4>
-
-                  <div className="space-y-2.5">
-                    {/* Card Option */}
-                    <label
-                      onClick={() => setPaymentMethod("card")}
-                      className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition ${
-                        paymentMethod === "card"
-                          ? "bg-amber-50/80 border-amber-500"
-                          : "bg-slate-50 border-slate-200"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="radio"
-                          name="payMethod"
-                          checked={paymentMethod === "card"}
-                          onChange={() => setPaymentMethod("card")}
-                          className="text-amber-600 focus:ring-amber-500"
-                        />
-                        <span className="text-xs font-bold text-slate-900">
-                          Credit / Debit Card
-                        </span>
-                      </div>
-                      <FaCreditCard className="text-amber-600 text-lg" />
-                    </label>
-
-                    {/* Paystack Simulation Option */}
-                    <label
-                      onClick={() => setPaymentMethod("paystack")}
-                      className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition ${
-                        paymentMethod === "paystack"
-                          ? "bg-amber-50/80 border-amber-500"
-                          : "bg-slate-50 border-slate-200"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="radio"
-                          name="payMethod"
-                          checked={paymentMethod === "paystack"}
-                          onChange={() => setPaymentMethod("paystack")}
-                          className="text-amber-600 focus:ring-amber-500"
-                        />
-                        <span className="text-xs font-bold text-slate-900">
-                          Paystack Instant Checkout
-                        </span>
-                      </div>
-                      <span className="bg-emerald-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded">
-                        FAST & SECURE
-                      </span>
-                    </label>
-
-                    {/* Pay at Hotel Option */}
-                    <label
-                      onClick={() => setPaymentMethod("hotel")}
-                      className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition ${
-                        paymentMethod === "hotel"
-                          ? "bg-amber-50/80 border-amber-500"
-                          : "bg-slate-50 border-slate-200"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="radio"
-                          name="payMethod"
-                          checked={paymentMethod === "hotel"}
-                          onChange={() => setPaymentMethod("hotel")}
-                          className="text-amber-600 focus:ring-amber-500"
-                        />
-                        <span className="text-xs font-bold text-slate-900">
-                          Pay at Front Desk upon Arrival
-                        </span>
-                      </div>
-                      <FaConciergeBell className="text-slate-500 text-lg" />
-                    </label>
-                  </div>
-
-                  {paymentMethod === "card" && (
-                    <div className="space-y-3 pt-2">
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                          Card Number
-                        </label>
-                        <input
-                          type="text"
-                          value={cardNumber}
-                          onChange={(e) => setCardNumber(e.target.value)}
-                          className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:border-amber-500 focus:outline-none"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                            Expiry Date
-                          </label>
-                          <input
-                            type="text"
-                            value={cardExpiry}
-                            onChange={(e) => setCardExpiry(e.target.value)}
-                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:border-amber-500 focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                            CVC / CVV
-                          </label>
-                          <input
-                            type="password"
-                            value={cardCvc}
-                            onChange={(e) => setCardCvc(e.target.value)}
-                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:border-amber-500 focus:outline-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  className="px-4 py-2.5 text-slate-600 text-xs font-bold hover:text-slate-900 flex items-center gap-1.5 transition"
-                >
-                  <FaArrowLeft className="text-[10px]" />
-                  <span>Back</span>
-                </button>
-                <button
-                  type="submit"
-                  className="bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-sm font-bold px-8 py-3.5 rounded-xl shadow-lg shadow-amber-600/30 flex items-center gap-2 cursor-pointer transition transform active:scale-95"
-                >
-                  <FaCheckCircle />
-                  <span>Confirm Booking ({formatPrice(grandTotal)})</span>
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* STEP 4: CONFIRMATION & RECEIPT */}
-          {step === 4 && confirmedBooking && (
-            <div className="text-center py-4 space-y-6 animate-scale-up">
-              <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-4xl mx-auto border-4 border-emerald-200">
-                <FaCheckCircle />
-              </div>
+              {/* Booking Schedule */}
+              <h4 className="font-serif font-bold text-slate-900 text-sm border-b border-slate-100 pb-1 pt-2">
+                Booking Schedule
+              </h4>
 
               <div>
-                <span className="bg-amber-100 text-amber-900 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-amber-300">
-                  RESERVATION CONFIRMED
-                </span>
-                <h3 className="font-serif text-3xl font-bold text-slate-900 mt-2">
-                  Thank You, {confirmedBooking.guestInfo.fullName}!
-                </h3>
-                <p className="text-slate-600 text-xs mt-1">
-                  Confirmation receipt has been sent to{" "}
-                  <strong className="text-slate-900">
-                    {confirmedBooking.guestInfo.email}
-                  </strong>
+                <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                  <FaCalendarAlt className="text-amber-600 text-xs" /> Check-In Date & Time *
+                </label>
+                <input
+                  type="datetime-local"
+                  required
+                  value={bookingForm.bookedCheckIn}
+                  onChange={(e) => handleFormChange("bookedCheckIn", e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:bg-white focus:border-amber-500 outline-none transition"
+                />
+              </div>
+
+              {bookingForm.bookingType === "per-night" ? (
+                <div>
+                  <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                    <FaCalendarAlt className="text-amber-600 text-xs" /> Check-Out Date & Time *
+                  </label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={bookingForm.bookedCheckOut}
+                    onChange={(e) => handleFormChange("bookedCheckOut", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:bg-white focus:border-amber-500 outline-none transition"
+                  />
+                  {bookingForm.bookedCheckIn &&
+                    bookingForm.bookedCheckOut &&
+                    nightsCount === 0 && (
+                      <p className="text-red-500 text-[11px] mt-1 font-semibold">
+                        Check-out date/time must be after check-in date/time.
+                      </p>
+                    )}
+                </div>
+              ) : (
+                <div>
+                  <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                    <FaClock className="text-amber-600 text-xs" /> Number of Hours *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={bookingForm.numberOfHours}
+                    onChange={(e) => handleFormChange("numberOfHours", e.target.value)}
+                    placeholder="e.g. 3"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:bg-white focus:border-amber-500 outline-none transition"
+                  />
+                </div>
+              )}
+
+              {/* Total Summary */}
+              <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                    <FaCalculator className="text-amber-600 text-xs" /> Total Amount
+                  </span>
+                  <span className="font-serif font-extrabold text-amber-800 text-xl">
+                    {formatPrice(calculatedAmount)}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  {bookingForm.bookingType === "per-night"
+                    ? nightsCount > 0
+                      ? `${nightsCount} night${nightsCount > 1 ? "s" : ""} × ${formatPrice(priceNight)} / night`
+                      : "Select valid check-in and check-out dates to calculate total."
+                    : hoursCount > 0
+                      ? `${hoursCount} hour${hoursCount > 1 ? "s" : ""} × ${formatPrice(priceHour)} / hour`
+                      : "Enter number of hours to calculate total."}
                 </p>
               </div>
-
-              {/* Receipt Summary Card */}
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-left max-w-lg mx-auto space-y-3 text-xs">
-                <div className="flex justify-between items-center border-b border-slate-200 pb-3">
-                  <span className="font-bold text-slate-500 uppercase tracking-wider">
-                    Booking Reference
-                  </span>
-                  <span className="font-mono text-base font-extrabold text-amber-700">
-                    #{confirmedBooking.id}
-                  </span>
-                </div>
-
-                {confirmedBooking.stayType === "hour" ? (
-                  <div className="grid grid-cols-2 gap-4 py-2 border-b border-slate-200">
-                    <div>
-                      <span className="text-slate-400 block font-medium">
-                        Stay Date
-                      </span>
-                      <strong className="text-slate-900 font-serif text-sm">
-                        {confirmedBooking.stayDate}
-                      </strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block font-medium">
-                        Start Time & Duration
-                      </span>
-                      <strong className="text-slate-900 font-serif text-sm">
-                        {confirmedBooking.startTime} (
-                        {confirmedBooking.durationHours} hrs)
-                      </strong>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-4 py-2 border-b border-slate-200">
-                    <div>
-                      <span className="text-slate-400 block font-medium">
-                        Check-In
-                      </span>
-                      <strong className="text-slate-900 font-serif text-sm">
-                        {confirmedBooking.checkIn} (3:00 PM)
-                      </strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block font-medium">
-                        Check-Out
-                      </span>
-                      <strong className="text-slate-900 font-serif text-sm">
-                        {confirmedBooking.checkOut} (12:00 PM)
-                      </strong>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-slate-600">Room Reserved:</span>
-                  <strong className="text-slate-900">
-                    {confirmedBooking.room.title}
-                  </strong>
-                </div>
-
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-slate-600">Stay Type:</span>
-                  <strong className="text-amber-800 uppercase font-bold text-[11px]">
-                    {confirmedBooking.stayType === "hour"
-                      ? `Per Hour (${confirmedBooking.durationHours} Hours)`
-                      : `Per Night (${confirmedBooking.nights} Nights)`}
-                  </strong>
-                </div>
-
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-slate-600">Payment Status:</span>
-                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">
-                    {confirmedBooking.payment.status}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center pt-2 border-t border-slate-200 text-sm font-bold">
-                  <span className="text-slate-900 font-serif">Total Paid:</span>
-                  <span className="text-amber-700 font-serif text-base">
-                    {formatPrice(confirmedBooking.payment.totalAmount)}
-                  </span>
-                </div>
-              </div>
-
-              {/* CTAs */}
-              <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-                <button
-                  onClick={() => window.print()}
-                  className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-md flex items-center justify-center gap-2 transition cursor-pointer"
-                >
-                  <FaPrint /> Print Receipt
-                </button>
-                <button
-                  onClick={onClose}
-                  className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs px-6 py-3 rounded-xl cursor-pointer transition"
-                >
-                  Close Window
-                </button>
-              </div>
             </div>
-          )}
-        </div>
+
+            {/* Actions */}
+            <div className="pt-2 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting || calculatedAmount <= 0}
+                className="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-md shadow-amber-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? (
+                  <span>Processing...</span>
+                ) : (
+                  <span>Confirm Reservation ({formatPrice(calculatedAmount)})</span>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
