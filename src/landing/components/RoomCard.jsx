@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import {
   FaUsers,
   FaMoon,
@@ -7,7 +6,6 @@ import {
   FaCalendarCheck,
   FaChevronLeft,
   FaChevronRight,
-  FaArrowRight,
 } from "react-icons/fa";
 import { formatPrice } from "../../utils/formatMoney";
 import StatusBadge from "../../dashboard/components/StatusBadge";
@@ -15,9 +13,12 @@ import StatusBadge from "../../dashboard/components/StatusBadge";
 const RoomCard = ({ room, onBookNow }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const images = room.images?.length > 0 ? room.images : [
-    "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80"
-  ];
+  const images =
+    room.images?.length > 0
+      ? room.images
+      : [
+          "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80",
+        ];
 
   const nextImage = (e) => {
     e.preventDefault();
@@ -28,9 +29,7 @@ const RoomCard = ({ room, onBookNow }) => {
   const prevImage = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentImageIndex(
-      (prev) => (prev - 1 + images.length) % images.length,
-    );
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
   const roomTitle = room.title || `Room ${room.roomNumber}`;
@@ -104,14 +103,9 @@ const RoomCard = ({ room, onBookNow }) => {
             <span>{roomCategory} Suite</span>
           </div>
 
-          <Link
-            to={`/rooms/${room._id || room.id}`}
-            className="block group-hover:text-amber-600 transition"
-          >
-            <h3 className="font-serif text-xl font-bold text-slate-900 leading-snug">
-              {roomTitle}
-            </h3>
-          </Link>
+          <h3 className="font-serif text-xl font-bold text-slate-900 leading-snug">
+            {roomTitle}
+          </h3>
 
           {/* Specs / Info Pill */}
           <div className="bg-slate-50 p-3 rounded-xl space-y-1.5 text-xs border border-slate-100 my-3">
@@ -182,4 +176,3 @@ const RoomCard = ({ room, onBookNow }) => {
 };
 
 export default RoomCard;
-

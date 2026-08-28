@@ -7,20 +7,17 @@ import {
   FaThLarge,
   FaList,
   FaUsers,
-  FaMoon,
-  FaClock,
   FaCalendarPlus,
-  FaTimes,
   FaUndo,
   FaBed,
-  FaFilter,
   FaHotel,
 } from "react-icons/fa";
 import { getAllRooms } from "../../services/room.service";
 import { formatPrice } from "../../utils/formatMoney";
 import { toast } from "react-toastify";
 
-const currency = (val) => (typeof val === "number" ? formatPrice(val) : val ?? "—");
+const currency = (val) =>
+  typeof val === "number" ? formatPrice(val) : (val ?? "—");
 
 const Rooms = () => {
   const [viewMode, setViewMode] = useState("grid");
@@ -114,7 +111,9 @@ const Rooms = () => {
             Accommodations & Luxury Suites
           </h1>
           <p className="text-slate-500 text-sm max-w-xl mx-auto font-medium leading-relaxed">
-            Discover our exquisite oceanfront rooms, executive business suites, and penthouse residences. Book your stay seamlessly by night or by hour.
+            Discover our exquisite oceanfront rooms, executive business suites,
+            and penthouse residences. Book your stay seamlessly by night or by
+            hour.
           </p>
         </div>
       </div>
@@ -129,7 +128,10 @@ const Rooms = () => {
               { id: "available", label: `Available (${stats.available})` },
               { id: "occupied", label: `Occupied (${stats.occupied})` },
               { id: "cleaning", label: `Cleaning (${stats.cleaning})` },
-              { id: "maintenance", label: `Maintenance (${stats.maintenance})` },
+              {
+                id: "maintenance",
+                label: `Maintenance (${stats.maintenance})`,
+              },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -203,7 +205,9 @@ const Rooms = () => {
         </div>
 
         {/* ACTIVE FILTERS & COUNT */}
-        {(selectedStatus !== "all" || selectedCategory !== "all" || searchTerm) && (
+        {(selectedStatus !== "all" ||
+          selectedCategory !== "all" ||
+          searchTerm) && (
           <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
             <span>Active filters:</span>
             {selectedStatus !== "all" && (
@@ -255,7 +259,8 @@ const Rooms = () => {
               No Rooms Matched Your Search
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              We couldn't find any rooms matching your current status or room type filter. Try adjusting your search parameters.
+              We couldn't find any rooms matching your current status or room
+              type filter. Try adjusting your search parameters.
             </p>
             <button
               onClick={resetFilters}
@@ -351,7 +356,11 @@ const Rooms = () => {
                           className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition cursor-pointer inline-flex items-center gap-1.5 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed shadow-xs"
                         >
                           <FaCalendarPlus className="text-[11px]" />
-                          <span>{r.status === "available" ? "Book Now" : "Unavailable"}</span>
+                          <span>
+                            {r.status === "available"
+                              ? "Book Now"
+                              : "Unavailable"}
+                          </span>
                         </button>
                       </td>
                     </tr>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   FaTimes,
   FaCalendarAlt,
@@ -101,7 +101,9 @@ const BookingModal = ({ room, isOpen, onClose, onSuccess }) => {
   const guests = room.numberOfGuest || room.capacity?.maxGuests || 2;
   const priceNight = room.pricePerNight ?? room.price ?? 0;
   const priceHour = room.pricePerHour ?? 0;
-  const roomImage = room.images?.[0] || "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80";
+  const roomImage =
+    room.images?.[0] ||
+    "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80";
 
   const handleFormChange = (field, value) => {
     setBookingForm((prev) => ({ ...prev, [field]: value }));
@@ -118,10 +120,13 @@ const BookingModal = ({ room, isOpen, onClose, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { fullName, email, phoneNumber, bookingType, bookedCheckIn } = bookingForm;
+    const { fullName, email, phoneNumber, bookingType, bookedCheckIn } =
+      bookingForm;
 
     if (!fullName.trim() || !email.trim() || !phoneNumber.trim()) {
-      toast.error("Please provide your full name, email address, and phone number.");
+      toast.error(
+        "Please provide your full name, email address, and phone number.",
+      );
       return;
     }
     if (!bookedCheckIn) {
@@ -141,7 +146,9 @@ const BookingModal = ({ room, isOpen, onClose, onSuccess }) => {
       return;
     }
     if (calculatedAmount <= 0) {
-      toast.error("Unable to calculate total booking amount. Please check parameters.");
+      toast.error(
+        "Unable to calculate total booking amount. Please check parameters.",
+      );
       return;
     }
 
@@ -165,11 +172,13 @@ const BookingModal = ({ room, isOpen, onClose, onSuccess }) => {
     setIsSubmitting(true);
     try {
       const response = await createBooking(payload);
-      toast.success(`Reservation confirmed for Room ${room.roomNumber || "001"}!`);
-      
+      toast.success(
+        `Reservation confirmed for Room ${room.roomNumber || "001"}!`,
+      );
+
       setConfirmedBooking({
         ...payload,
-        bookingRef: response?.booking?._id || `VIR-${Math.floor(100000 + Math.random() * 900000)}`,
+        bookingCode: response?.booking?.bookingCode,
         roomTitle,
         roomType,
       });
@@ -213,14 +222,32 @@ const BookingModal = ({ room, isOpen, onClose, onSuccess }) => {
 
             <div>
               <span className="bg-amber-100 text-amber-900 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-amber-300">
-                RESERVATION CONFIRMED
+                RESERVATION BOOKED
               </span>
               <h3 className="font-serif text-2xl font-bold text-slate-900 mt-3">
                 Thank You, {confirmedBooking.fullName}!
               </h3>
-              <p className="text-slate-500 text-xs mt-1">
-                Your reservation details have been registered. A confirmation copy will be sent to{" "}
-                <strong className="text-slate-800">{confirmedBooking.email}</strong>.
+              <p className="text-slate-600 text-xs mt-2 leading-relaxed max-w-sm mx-auto">
+                Your reservation is confirmed. No payment is required now -
+                you'll pay{" "}
+                <strong className="text-slate-800">
+                  onsite when you check in
+                </strong>
+                .
+              </p>
+              <p className="text-slate-500 text-xs mt-2 leading-relaxed max-w-sm mx-auto">
+                Simply present this receipt or your booking code{" "}
+                <strong className="text-amber-800">
+                  {confirmedBooking.bookingCode}
+                </strong>{" "}
+                to our staff at check-in to confirm your reservation.
+              </p>
+              <p className="text-slate-500 text-xs mt-2">
+                We've also sent a copy of this receipt to{" "}
+                <strong className="text-slate-800">
+                  {confirmedBooking.email}
+                </strong>{" "}
+                for your records.
               </p>
             </div>
 
@@ -233,6 +260,13 @@ const BookingModal = ({ room, isOpen, onClose, onSuccess }) => {
                 <span className="font-serif text-base font-bold text-slate-900">
                   Room {room.roomNumber} ({roomType})
                 </span>
+              </div>
+
+              <div className="flex justify-between items-center py-1">
+                <span className="text-slate-500">Booking Code:</span>
+                <strong className="text-amber-800 uppercase font-bold">
+                  {confirmedBooking.bookingCode}
+                </strong>
               </div>
 
               <div className="flex justify-between items-center py-1">
@@ -262,16 +296,22 @@ const BookingModal = ({ room, isOpen, onClose, onSuccess }) => {
 
               <div className="flex justify-between items-center py-1">
                 <span className="text-slate-500">Guest Name:</span>
-                <strong className="text-slate-800">{confirmedBooking.fullName}</strong>
+                <strong className="text-slate-800">
+                  {confirmedBooking.fullName}
+                </strong>
               </div>
 
               <div className="flex justify-between items-center py-1">
                 <span className="text-slate-500">Phone:</span>
-                <strong className="text-slate-800">{confirmedBooking.phoneNumber}</strong>
+                <strong className="text-slate-800">
+                  {confirmedBooking.phoneNumber}
+                </strong>
               </div>
 
               <div className="flex justify-between items-center pt-3 border-t border-slate-200 text-sm">
-                <span className="font-serif font-bold text-slate-900">Total Paid/Due:</span>
+                <span className="font-serif font-bold text-slate-900">
+                  Total Paid/Due:
+                </span>
                 <span className="font-serif font-bold text-amber-700 text-lg">
                   {formatPrice(confirmedBooking.amount)}
                 </span>
@@ -338,7 +378,13 @@ const BookingModal = ({ room, isOpen, onClose, onSuccess }) => {
                       : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
-                  <FaMoon className={bookingForm.bookingType === "per-night" ? "text-amber-600" : "text-slate-400"} />
+                  <FaMoon
+                    className={
+                      bookingForm.bookingType === "per-night"
+                        ? "text-amber-600"
+                        : "text-slate-400"
+                    }
+                  />
                   <span>Per Night ({formatPrice(priceNight)})</span>
                 </button>
                 {priceHour > 0 && (
@@ -351,7 +397,13 @@ const BookingModal = ({ room, isOpen, onClose, onSuccess }) => {
                         : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
-                    <FaClock className={bookingForm.bookingType === "per-hour" ? "text-amber-600" : "text-slate-400"} />
+                    <FaClock
+                      className={
+                        bookingForm.bookingType === "per-hour"
+                          ? "text-amber-600"
+                          : "text-slate-400"
+                      }
+                    />
                     <span>Per Hour ({formatPrice(priceHour)})</span>
                   </button>
                 )}
@@ -381,7 +433,8 @@ const BookingModal = ({ room, isOpen, onClose, onSuccess }) => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                    <FaEnvelope className="text-amber-600 text-xs" /> Email Address *
+                    <FaEnvelope className="text-amber-600 text-xs" /> Email
+                    Address *
                   </label>
                   <input
                     type="email"
@@ -394,13 +447,16 @@ const BookingModal = ({ room, isOpen, onClose, onSuccess }) => {
                 </div>
                 <div>
                   <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                    <FaPhoneAlt className="text-amber-600 text-xs" /> Phone Number *
+                    <FaPhoneAlt className="text-amber-600 text-xs" /> Phone
+                    Number *
                   </label>
                   <input
                     type="tel"
                     required
                     value={bookingForm.phoneNumber}
-                    onChange={(e) => handleFormChange("phoneNumber", e.target.value)}
+                    onChange={(e) =>
+                      handleFormChange("phoneNumber", e.target.value)
+                    }
                     placeholder="0801 234 5678"
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:bg-white focus:border-amber-500 outline-none transition"
                   />
@@ -414,13 +470,16 @@ const BookingModal = ({ room, isOpen, onClose, onSuccess }) => {
 
               <div>
                 <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                  <FaCalendarAlt className="text-amber-600 text-xs" /> Check-In Date & Time *
+                  <FaCalendarAlt className="text-amber-600 text-xs" /> Check-In
+                  Date & Time *
                 </label>
                 <input
                   type="datetime-local"
                   required
                   value={bookingForm.bookedCheckIn}
-                  onChange={(e) => handleFormChange("bookedCheckIn", e.target.value)}
+                  onChange={(e) =>
+                    handleFormChange("bookedCheckIn", e.target.value)
+                  }
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:bg-white focus:border-amber-500 outline-none transition"
                 />
               </div>
@@ -428,13 +487,16 @@ const BookingModal = ({ room, isOpen, onClose, onSuccess }) => {
               {bookingForm.bookingType === "per-night" ? (
                 <div>
                   <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                    <FaCalendarAlt className="text-amber-600 text-xs" /> Check-Out Date & Time *
+                    <FaCalendarAlt className="text-amber-600 text-xs" />{" "}
+                    Check-Out Date & Time *
                   </label>
                   <input
                     type="datetime-local"
                     required
                     value={bookingForm.bookedCheckOut}
-                    onChange={(e) => handleFormChange("bookedCheckOut", e.target.value)}
+                    onChange={(e) =>
+                      handleFormChange("bookedCheckOut", e.target.value)
+                    }
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:bg-white focus:border-amber-500 outline-none transition"
                   />
                   {bookingForm.bookedCheckIn &&
@@ -448,14 +510,17 @@ const BookingModal = ({ room, isOpen, onClose, onSuccess }) => {
               ) : (
                 <div>
                   <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                    <FaClock className="text-amber-600 text-xs" /> Number of Hours *
+                    <FaClock className="text-amber-600 text-xs" /> Number of
+                    Hours *
                   </label>
                   <input
                     type="number"
                     min="1"
                     required
                     value={bookingForm.numberOfHours}
-                    onChange={(e) => handleFormChange("numberOfHours", e.target.value)}
+                    onChange={(e) =>
+                      handleFormChange("numberOfHours", e.target.value)
+                    }
                     placeholder="e.g. 3"
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:bg-white focus:border-amber-500 outline-none transition"
                   />
@@ -466,7 +531,8 @@ const BookingModal = ({ room, isOpen, onClose, onSuccess }) => {
               <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 space-y-1.5">
                 <div className="flex justify-between items-center">
                   <span className="font-bold text-slate-700 flex items-center gap-1.5">
-                    <FaCalculator className="text-amber-600 text-xs" /> Total Amount
+                    <FaCalculator className="text-amber-600 text-xs" /> Total
+                    Amount
                   </span>
                   <span className="font-serif font-extrabold text-amber-800 text-xl">
                     {formatPrice(calculatedAmount)}
@@ -501,7 +567,9 @@ const BookingModal = ({ room, isOpen, onClose, onSuccess }) => {
                 {isSubmitting ? (
                   <span>Processing...</span>
                 ) : (
-                  <span>Confirm Reservation ({formatPrice(calculatedAmount)})</span>
+                  <span>
+                    Confirm Reservation ({formatPrice(calculatedAmount)})
+                  </span>
                 )}
               </button>
             </div>

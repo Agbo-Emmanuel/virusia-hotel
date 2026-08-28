@@ -1,20 +1,16 @@
-import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FaChartPie,
   FaCalendarCheck,
   FaBed,
-  FaUsers,
   FaChartLine,
   FaThList,
   FaConciergeBell,
   FaUserShield,
-  FaSlidersH,
   FaChevronLeft,
   FaChevronRight,
   FaGlobe,
   FaSignOutAlt,
-  FaExchangeAlt,
   FaTimes,
 } from "react-icons/fa";
 
@@ -67,14 +63,6 @@ const Sidebar = ({
       );
     }
     return location.pathname.startsWith(item.path);
-  };
-
-  const handleRoleSwitch = () => {
-    if (isAdmin) {
-      navigate("/super-admin");
-    } else {
-      navigate("/admin");
-    }
   };
 
   const logout = () => {
