@@ -12,6 +12,7 @@ import {
   FaSlidersH,
   FaChevronLeft,
   FaChevronRight,
+  FaGlobe,
   FaSignOutAlt,
   FaExchangeAlt,
   FaTimes,
@@ -34,7 +35,6 @@ const Sidebar = ({
     { label: "Bookings", path: "/admin/bookings", icon: FaCalendarCheck },
     { label: "Rooms & Status", path: "/admin/rooms", icon: FaBed },
     { label: "Create Room", path: "/admin/create-room", icon: FaBed },
-    // { label: "Guests Directory", path: "/admin/guests", icon: FaUsers },
   ];
 
   const superAdminNav = [
@@ -56,11 +56,6 @@ const Sidebar = ({
       path: "/super-admin/admins",
       icon: FaUserShield,
     },
-    // {
-    //   label: "System Settings",
-    //   path: "/super-admin/settings",
-    //   icon: FaSlidersH,
-    // },
   ];
 
   const navItems = isAdmin ? adminNav : superAdminNav;
@@ -85,12 +80,11 @@ const Sidebar = ({
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userData");
-    navigate("/login");
+    navigate("/login"); // adjust to your actual login route
   };
 
   return (
     <>
-      {/* Mobile Backdrop */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs lg:hidden"
@@ -122,7 +116,6 @@ const Sidebar = ({
             )}
           </Link>
 
-          {/* Desktop Toggle Button */}
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="hidden lg:flex p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
@@ -135,7 +128,6 @@ const Sidebar = ({
             )}
           </button>
 
-          {/* Mobile Close Button */}
           <button
             onClick={() => setMobileOpen(false)}
             className="lg:hidden p-2 text-slate-400 hover:text-white rounded-lg"
@@ -144,7 +136,6 @@ const Sidebar = ({
           </button>
         </div>
 
-        {/* Role Badge Indicator */}
         {!collapsed && (
           <div className="px-5 py-3 border-b border-slate-800/50 bg-slate-950/40">
             <div className="flex items-center justify-between">
@@ -164,7 +155,6 @@ const Sidebar = ({
           </div>
         )}
 
-        {/* Main Navigation Links */}
         <div className="flex-1 py-4 px-3 overflow-y-auto space-y-1 custom-scrollbar">
           <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">
             {!collapsed ? "Menu Navigation" : "•"}
@@ -198,33 +188,25 @@ const Sidebar = ({
           })}
         </div>
 
-        {/* Switch Role & Footer Actions */}
         <div className="p-3 border-t border-slate-800/80 bg-slate-950/60 space-y-1">
-          {/* <button
-            onClick={handleRoleSwitch}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/60 hover:bg-slate-800 transition-colors border border-slate-700/50 cursor-pointer"
-            title={
-              collapsed
-                ? `Switch to ${isAdmin ? "Super Admin" : "Admin"}`
-                : undefined
-            }
+          <Link
+            to="/"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/40 transition-colors"
+            title={collapsed ? "Guest Landing Site" : undefined}
           >
-            <FaExchangeAlt className="text-amber-400 shrink-0 text-sm" />
+            <FaGlobe className="shrink-0 text-sm" />
             {!collapsed && (
-              <span className="truncate">
-                Switch to {isAdmin ? "Super Admin" : "Admin"}
-              </span>
+              <span className="truncate">View Public Website</span>
             )}
-          </button> */}
+          </Link>
 
-          {/* Return to Guest Site */}
           <button
             onClick={logout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/40 transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/40 transition-colors cursor-pointer"
             title={collapsed ? "Logout" : undefined}
           >
             <FaSignOutAlt className="shrink-0 text-sm" />
-            Logout
+            {!collapsed && <span className="truncate">Logout</span>}
           </button>
         </div>
       </aside>
