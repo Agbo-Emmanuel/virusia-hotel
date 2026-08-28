@@ -1,15 +1,13 @@
 export const ENDPOINTS = {
   // Auth
-  INDIVIDUAL_REGISTER: "/api/auth/register",
-  ORG_REGISTER: "/api/auth/register/organization",
-  VERIFY_OTP: "/api/auth/verify-email",
-  RESEND_OTP: "/api/auth/resend-otp",
-  LOGIN: "/api/auth/login",
-  LOGOUT: "/api/auth/logout",
-  REFRESH_TOKEN: "/api/auth/refresh-token",
-  FORGOT_PASSWORD: "/api/auth/forgot-password",
-  RESET_PASSWORD: "/api/auth/reset-password",
-  ADMIN_REGISTER: "/api/admin/register",
+  REGISTER: "/api/user/signup",
+  VERIFY_OTP: "/api/user/verify-email",
+  RESEND_OTP: "/api/user/resend-otp",
+  LOGIN: "/api/user/login",
+  LOGOUT: "/api/user/logout",
+  REFRESH_TOKEN: "/api/user/refresh-token",
+  FORGOT_PASSWORD: "/api/user/forgot-password",
+  RESET_PASSWORD: "/api/user/reset-password",
 
   //Room
   GET_ALL_ROOMS: "/api/room/get-all-rooms",

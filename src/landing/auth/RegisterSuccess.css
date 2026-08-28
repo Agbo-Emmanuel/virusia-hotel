@@ -1,0 +1,4 @@
+/* Minimal overrides for RegisterSuccess; most styling uses existing utility classes */
+.register-logo {
+  height: 48px;
+}

@@ -1,15 +1,11 @@
 import { api } from "../api/api";
 import { ENDPOINTS } from "../api/endpoint";
 
-export const individualRegister = async (payload) => {
-  const response = await api.post(ENDPOINTS.INDIVIDUAL_REGISTER, payload);
+export const register = async (payload) => {
+  const response = await api.post(ENDPOINTS.REGISTER, payload);
   return response.data;
 };
 
-export const orgRegister = async (payload) => {
-  const response = await api.post(ENDPOINTS.ORG_REGISTER, payload);
-  return response.data;
-};
 export const verifyOtp = async (payload) => {
   const response = await api.post(ENDPOINTS.VERIFY_OTP, null, {
     params: {

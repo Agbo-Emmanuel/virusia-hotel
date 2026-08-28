@@ -10,9 +10,7 @@ const DashboardLanding = ({ defaultRole }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Auto detect role from route or prop
-  const currentRole =
-    defaultRole ||
-    (location.pathname.startsWith("/super-admin") ? "superAdmin" : "admin");
+  const currentRole = defaultRole;
 
   // Helper for human readable path breadcrumb
   const getBreadcrumbs = () => {

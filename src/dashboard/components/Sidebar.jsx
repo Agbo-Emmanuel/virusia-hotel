@@ -12,7 +12,6 @@ import {
   FaSlidersH,
   FaChevronLeft,
   FaChevronRight,
-  FaGlobe,
   FaSignOutAlt,
   FaExchangeAlt,
   FaTimes,
@@ -81,6 +80,12 @@ const Sidebar = ({
     } else {
       navigate("/admin");
     }
+  };
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userData");
+    navigate("/login");
   };
 
   return (
@@ -213,16 +218,14 @@ const Sidebar = ({
           </button> */}
 
           {/* Return to Guest Site */}
-          <Link
-            to="/"
+          <button
+            onClick={logout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/40 transition-colors"
-            title={collapsed ? "Guest Landing Site" : undefined}
+            title={collapsed ? "Logout" : undefined}
           >
-            <FaGlobe className="shrink-0 text-sm" />
-            {!collapsed && (
-              <span className="truncate">View Public Website</span>
-            )}
-          </Link>
+            <FaSignOutAlt className="shrink-0 text-sm" />
+            Logout
+          </button>
         </div>
       </aside>
     </>
