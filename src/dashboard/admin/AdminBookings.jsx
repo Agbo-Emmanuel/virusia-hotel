@@ -1,67 +1,22 @@
 import React, { useEffect, useState } from "react";
 import StatusBadge from "../components/StatusBadge";
+import BookingDetailsModal from "../components/BookingDetailsModal";
 import {
   FaSearch,
   FaEye,
   FaCalendarAlt,
   FaPlus,
-  FaTimes,
-  FaDownload,
-  FaClock,
-  FaPhoneAlt,
-  FaEnvelope,
-  FaBed,
   FaSync,
+  FaUsers,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { formatPrice } from "../../utils/formatMoney";
+import { getErrorMessage } from "../../utils/apiError";
 import {
   getAllBookings,
   updateBookingStatus,
 } from "../../services/booking.service";
 import { useNavigate } from "react-router-dom";
-
-// Defines which status each booking is allowed to move to next.
-// Cancelled and check-out are terminal states — no further updates.
-const STATUS_FLOW = {
-  pending: ["confirmed", "cancelled"],
-  confirmed: ["checked-in"],
-  "checked-in": ["checked-out"],
-  "checked-out": [],
-  cancelled: [],
-};
-
-const STATUS_ACTIONS = {
-  confirmed: {
-    label: "Confirm Booking",
-    classes: "bg-emerald-50 hover:bg-emerald-100 text-emerald-800",
-  },
-  cancelled: {
-    label: "Cancel Booking",
-    classes: "bg-red-50 hover:bg-red-100 text-red-800",
-  },
-  "checked-in": {
-    label: "Check In Guest",
-    classes: "bg-sky-50 hover:bg-sky-100 text-sky-800",
-  },
-  "checked-out": {
-    label: "Check Out Guest",
-    classes: "bg-slate-100 hover:bg-slate-200 text-slate-800",
-  },
-};
-
-const formatDateTime = (value) => {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-};
 
 const formatDate = (value) => {
   if (!value) return "—";
@@ -72,6 +27,14 @@ const formatDate = (value) => {
     day: "numeric",
     year: "numeric",
   });
+};
+
+const guestsShort = (b) => {
+  if (!Number.isFinite(b.adults)) return null; // older bookings have no guest counts
+  const children = b.children || 0;
+  return `${b.adults} adult${b.adults === 1 ? "" : "s"}${
+    children > 0 ? ` · ${children} child${children === 1 ? "" : "ren"}` : ""
+  }`;
 };
 
 const AdminBookings = () => {
@@ -99,7 +62,7 @@ const AdminBookings = () => {
       setBookings(sorted);
     } catch (error) {
       console.log(error);
-      toast.error("Failed to load bookings");
+      toast.error(getErrorMessage(error, "Failed to load bookings"));
     } finally {
       setIsLoading(false);
     }
@@ -144,31 +107,27 @@ const AdminBookings = () => {
   const handleStatusChange = async (bookingId, newStatus) => {
     setIsUpdating(true);
     try {
-      const payload = {
-        bookingId: bookingId,
+      const response = await updateBookingStatus({
+        bookingId,
         status: newStatus,
-      };
-      await updateBookingStatus(payload);
+      });
+      // Use what the server returns (e.g. actual check-in time, recalculated
+      // per-hour check-out) instead of only patching the status locally
+      const updated = response.booking || { status: newStatus };
       setBookings((prev) =>
-        prev.map((b) =>
-          b._id === bookingId ? { ...b, status: newStatus } : b,
-        ),
+        prev.map((b) => (b._id === bookingId ? { ...b, ...updated } : b)),
       );
       setSelectedBooking((prev) =>
-        prev && prev._id === bookingId ? { ...prev, status: newStatus } : prev,
+        prev && prev._id === bookingId ? { ...prev, ...updated } : prev,
       );
       toast.success(`Booking updated to ${newStatus.toUpperCase()}`);
     } catch (error) {
       console.log(error);
-      toast.error("Failed to update booking status");
+      toast.error(getErrorMessage(error, "Failed to update booking status"));
     } finally {
       setIsUpdating(false);
     }
   };
-
-  const nextStatuses = selectedBooking
-    ? STATUS_FLOW[selectedBooking.status] || []
-    : [];
 
   return (
     <div className="space-y-6">
@@ -259,7 +218,7 @@ const AdminBookings = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {isLoading ? (
+              {isLoading && bookings.length === 0 ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
                     <td className="py-4 px-4" colSpan={7}>
@@ -283,8 +242,13 @@ const AdminBookings = () => {
                     onClick={() => setSelectedBooking(b)}
                     className="hover:bg-amber-50/20 transition cursor-pointer"
                   >
-                    <td className="py-4 px-4 font-bold text-slate-900">
+                    <td className="py-4 px-4 font-bold text-slate-900 whitespace-nowrap">
                       {b.bookingCode}
+                      {b.source && (
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mt-0.5">
+                          {b.source === "front-desk" ? "Front desk" : "Website"}
+                        </p>
+                      )}
                     </td>
                     <td className="py-4 px-4">
                       <p className="font-bold text-slate-900">{b.fullName}</p>
@@ -297,9 +261,15 @@ const AdminBookings = () => {
                           {b.numberOfHours}h stay
                         </p>
                       )}
+                      {guestsShort(b) && (
+                        <p className="text-[11px] text-slate-400 font-normal flex items-center gap-1 whitespace-nowrap">
+                          <FaUsers className="text-[9px]" />
+                          {guestsShort(b)}
+                        </p>
+                      )}
                     </td>
                     <td className="py-4 px-4">
-                      <div className="flex items-center gap-1 font-medium text-slate-700">
+                      <div className="flex items-center gap-1 font-medium text-slate-700 whitespace-nowrap">
                         <FaCalendarAlt className="text-amber-600 text-[10px]" />
                         <span>
                           {formatDate(b.bookedCheckIn)} →{" "}
@@ -335,179 +305,14 @@ const AdminBookings = () => {
         </div>
       </div>
 
-      {/* Booking Detail Modal */}
-      {selectedBooking && (
-        <div
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
-          onClick={() => setSelectedBooking(null)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-6 relative animate-scale-up max-h-[90vh] overflow-y-auto"
-          >
-            <button
-              onClick={() => setSelectedBooking(null)}
-              className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
-            >
-              <FaTimes className="text-base" />
-            </button>
-
-            <div className="border-b border-slate-100 pb-4">
-              <span className="text-[10px] uppercase font-bold text-amber-600 tracking-wider">
-                Booking Details
-              </span>
-              <h3 className="text-xl font-extrabold text-slate-900 font-serif">
-                Reservation {selectedBooking.bookingCode}
-              </h3>
-            </div>
-
-            <div className="space-y-4 text-xs">
-              <div className="bg-slate-50 p-4 rounded-2xl space-y-2">
-                <p className="font-bold text-slate-900 text-sm">
-                  {selectedBooking.fullName}
-                </p>
-                <p className="text-slate-600 flex items-center gap-2">
-                  <FaEnvelope className="text-slate-400" />
-                  {selectedBooking.email}
-                </p>
-                <p className="text-slate-600 flex items-center gap-2">
-                  <FaPhoneAlt className="text-slate-400" />
-                  {selectedBooking.phoneNumber}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-amber-50/60 p-3 rounded-xl border border-amber-100">
-                  <p className="text-[10px] text-amber-800 font-bold uppercase">
-                    Assigned Room
-                  </p>
-                  <p className="font-bold text-slate-900 mt-1 flex items-center gap-1.5">
-                    <FaBed className="text-amber-600 text-[10px]" />
-                    Room {selectedBooking.roomNumber}
-                  </p>
-                </div>
-                <div className="bg-amber-50/60 p-3 rounded-xl border border-amber-100">
-                  <p className="text-[10px] text-amber-800 font-bold uppercase">
-                    Current Status
-                  </p>
-                  <div className="mt-1">
-                    <StatusBadge status={selectedBooking.status} size="sm" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                  <p className="text-[10px] text-slate-500 font-bold uppercase">
-                    Booked Check-In
-                  </p>
-                  <p className="font-semibold text-slate-800 mt-1">
-                    {formatDateTime(selectedBooking.bookedCheckIn)}
-                  </p>
-                </div>
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                  <p className="text-[10px] text-slate-500 font-bold uppercase">
-                    Booked Check-Out
-                  </p>
-                  <p className="font-semibold text-slate-800 mt-1">
-                    {formatDateTime(selectedBooking.bookedCheckOut)}
-                  </p>
-                </div>
-              </div>
-
-              {(selectedBooking.actualCheckIn ||
-                selectedBooking.actualCheckOut) && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase">
-                      Actual Check-In
-                    </p>
-                    <p className="font-semibold text-slate-800 mt-1">
-                      {formatDateTime(selectedBooking.actualCheckIn)}
-                    </p>
-                  </div>
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase">
-                      Actual Check-Out
-                    </p>
-                    <p className="font-semibold text-slate-800 mt-1">
-                      {formatDateTime(selectedBooking.actualCheckOut)}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <span className="flex items-center gap-2 text-slate-500 font-semibold">
-                  <FaClock className="text-slate-400" />
-                  Booking Type
-                </span>
-                <span className="font-bold text-slate-800 capitalize">
-                  {selectedBooking.bookingType?.replace("-", " ")}
-                  {selectedBooking.bookingType === "per-hour" &&
-                    selectedBooking.numberOfHours &&
-                    ` · ${selectedBooking.numberOfHours}h`}
-                </span>
-              </div>
-
-              {/* Status Update — options depend on the current status */}
-              <div className="pt-2">
-                <p className="font-bold text-slate-900 mb-2">
-                  Change Reservation Status:
-                </p>
-                {nextStatuses.length > 0 ? (
-                  <div
-                    className={`grid gap-2 ${
-                      nextStatuses.length === 1 ? "grid-cols-1" : "grid-cols-2"
-                    }`}
-                  >
-                    {nextStatuses.map((target) => (
-                      <button
-                        key={target}
-                        disabled={isUpdating}
-                        onClick={() =>
-                          handleStatusChange(selectedBooking._id, target)
-                        }
-                        className={`py-2 font-bold rounded-xl text-[11px] cursor-pointer transition disabled:opacity-50 disabled:cursor-not-allowed ${STATUS_ACTIONS[target].classes}`}
-                      >
-                        {STATUS_ACTIONS[target].label}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-slate-400 italic">
-                    This booking is in a final state — no further status updates
-                    are available.
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] text-slate-400 uppercase font-semibold">
-                  Total Cost
-                </p>
-                <p className="text-lg font-extrabold text-slate-900">
-                  {formatPrice(selectedBooking.amount)}
-                </p>
-              </div>
-              {/* <button
-                onClick={() => {
-                  toast.success(
-                    `Printed Guest Receipt for ${selectedBooking.bookingCode}`,
-                  );
-                  setSelectedBooking(null);
-                }}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 cursor-pointer"
-              >
-                <FaDownload />
-                <span>Print Receipt</span>
-              </button> */}
-            </div>
-          </div>
-        </div>
-      )}
+      <BookingDetailsModal
+        booking={selectedBooking}
+        onClose={() => setSelectedBooking(null)}
+        onStatusChange={handleStatusChange}
+        isUpdating={isUpdating}
+        title="Booking Details"
+        statusHeading="Change Reservation Status:"
+      />
     </div>
   );
 };

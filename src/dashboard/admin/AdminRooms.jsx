@@ -15,23 +15,48 @@ import {
   FaHourglassHalf,
   FaCalendarAlt,
   FaCalculator,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { getAllRooms } from "../../services/room.service";
-import { createBooking } from "../../services/booking.service";
+import { createAdminBooking } from "../../services/booking.service";
+import { getErrorMessage } from "../../utils/apiError";
+import {
+  describeLimits,
+  guestLimitMessage,
+  roomCapacity,
+} from "../../utils/roomGuest";
+import {
+  DEFAULT_CHECK_IN_TIME,
+  DEFAULT_CHECK_OUT_TIME,
+  MAX_NIGHTS,
+  addDays,
+  formatTimeLabel,
+  nightsBetween,
+  nowForDateTimeInput,
+  todayISO,
+} from "../../utils/dates";
 
 const currency = (value) =>
   typeof value === "number" ? `₦${value.toLocaleString()}` : (value ?? "—");
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const EMPTY_FORM = {
   fullName: "",
   email: "",
   phoneNumber: "",
   bookingType: "per-night",
+  // per-night: "YYYY-MM-DD" · per-hour: "YYYY-MM-DDTHH:mm" (datetime-local)
   bookedCheckIn: "",
   bookedCheckOut: "",
   numberOfHours: "",
+  adults: "1",
+  children: "0",
 };
+
+const inputClass =
+  "w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-amber-500 outline-none transition";
 
 const AdminRooms = () => {
   const [viewMode, setViewMode] = useState("grid");
@@ -45,6 +70,7 @@ const AdminRooms = () => {
   const [bookingRoom, setBookingRoom] = useState(null);
   const [bookingForm, setBookingForm] = useState(EMPTY_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const fetchAllRooms = async () => {
     setIsLoading(true);
@@ -53,7 +79,7 @@ const AdminRooms = () => {
       setRooms(response.rooms || []);
     } catch (error) {
       console.log(error);
-      toast.error("Failed to load rooms");
+      toast.error(getErrorMessage(error, "Failed to load rooms"));
     } finally {
       setIsLoading(false);
     }
@@ -93,42 +119,67 @@ const AdminRooms = () => {
     return matchesStatus && matchesCategory && matchesSearch;
   });
 
+  // A room only can't be booked while it's out of service. "Occupied" just means
+  // a guest is in it right now: it can still be booked for other times, and the
+  // server rejects any real clash with a clear message.
+  const isBookable = (room) => room.status !== "maintenance";
+
   // --- Walk-in booking flow -----------------------------------------
 
   const openBookingModal = (room) => {
     setBookingRoom(room);
     setBookingForm(EMPTY_FORM);
+    setSubmitError("");
   };
 
   const closeBookingModal = () => {
+    if (isSubmitting) return;
     setBookingRoom(null);
     setBookingForm(EMPTY_FORM);
+    setSubmitError("");
   };
 
   const handleFormChange = (field, value) => {
     setBookingForm((prev) => ({ ...prev, [field]: value }));
+    if (submitError) setSubmitError("");
   };
 
   const handleBookingTypeChange = (type) => {
     setBookingForm((prev) => ({
       ...prev,
       bookingType: type,
-      // Reset the fields that don't apply to the newly selected type.
-      bookedCheckOut: type === "per-hour" ? "" : prev.bookedCheckOut,
-      numberOfHours: type === "per-night" ? "" : prev.numberOfHours,
+      // Per-night uses plain dates, per-hour uses a date & time, so the
+      // formats can't be carried across. Start these fields fresh.
+      bookedCheckIn: "",
+      bookedCheckOut: "",
+      numberOfHours: "",
     }));
+    setSubmitError("");
   };
 
-  // Nights are calculated from the selected check-in/check-out dates —
-  // rounded up so a partial day still counts as a full night.
+  const handleNightCheckInChange = (value) => {
+    setBookingForm((prev) => ({
+      ...prev,
+      bookedCheckIn: value,
+      // Drop a check-out that is no longer after the new check-in
+      bookedCheckOut:
+        prev.bookedCheckOut && value && prev.bookedCheckOut <= value
+          ? ""
+          : prev.bookedCheckOut,
+    }));
+    if (submitError) setSubmitError("");
+  };
+
+  const today = todayISO();
+
+  // Nights are whole calendar days between the chosen dates.
   const nightsCount = useMemo(() => {
     if (bookingForm.bookingType !== "per-night") return 0;
-    if (!bookingForm.bookedCheckIn || !bookingForm.bookedCheckOut) return 0;
-    const start = new Date(bookingForm.bookedCheckIn);
-    const end = new Date(bookingForm.bookedCheckOut);
-    const diffMs = end - start;
-    if (diffMs <= 0) return 0;
-    return Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+    const nights = nightsBetween(
+      bookingForm.bookedCheckIn,
+      bookingForm.bookedCheckOut,
+    );
+    return nights > 0 ? nights : 0;
   }, [
     bookingForm.bookingType,
     bookingForm.bookedCheckIn,
@@ -142,7 +193,7 @@ const AdminRooms = () => {
   }, [bookingForm.bookingType, bookingForm.numberOfHours]);
 
   // The amount is always derived from the room's rate — never typed in —
-  // so it can't drift from what the room actually charges.
+  // and the server calculates the same figure when the booking is saved.
   const calculatedAmount = useMemo(() => {
     if (!bookingRoom) return 0;
     if (bookingForm.bookingType === "per-night") {
@@ -153,62 +204,103 @@ const AdminRooms = () => {
 
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
-    if (!bookingRoom) return;
+    if (!bookingRoom || isSubmitting) return;
 
-    const { fullName, email, phoneNumber, bookingType, bookedCheckIn } =
-      bookingForm;
+    const {
+      fullName,
+      email,
+      phoneNumber,
+      bookingType,
+      bookedCheckIn,
+      bookedCheckOut,
+      numberOfHours,
+    } = bookingForm;
 
-    if (!fullName.trim() || !email.trim() || !phoneNumber.trim()) {
-      toast.error("Please fill in the guest's full name, email, and phone.");
-      return;
+    const fail = (message) => {
+      setSubmitError(message);
+    };
+
+    if (!fullName.trim() || !phoneNumber.trim()) {
+      return fail("Please fill in the guest's full name and phone number.");
     }
-    if (!bookedCheckIn) {
-      toast.error("Please select a check-in date & time.");
-      return;
+    if (email.trim() && !EMAIL_RE.test(email.trim())) {
+      return fail("That email address doesn't look right.");
     }
-    if (bookingType === "per-night" && !bookingForm.bookedCheckOut) {
-      toast.error("Please select a check-out date & time.");
-      return;
+
+    const adults = Number(bookingForm.adults);
+    const children = Number(bookingForm.children || 0);
+    if (!Number.isInteger(adults) || adults < 1) {
+      return fail("There must be at least 1 adult.");
     }
-    if (bookingType === "per-night" && nightsCount === 0) {
-      toast.error("Check-out must be after check-in.");
-      return;
+    if (!Number.isInteger(children) || children < 0) {
+      return fail("Children must be 0 or more.");
     }
-    if (bookingType === "per-hour" && !bookingForm.numberOfHours) {
-      toast.error("Please enter the number of hours.");
-      return;
+    const limitProblem = guestLimitMessage(bookingRoom, adults, children);
+    if (limitProblem) return fail(limitProblem);
+
+    if (bookingType === "per-night") {
+      if (!bookedCheckIn || !bookedCheckOut) {
+        return fail("Please select both a check-in and a check-out date.");
+      }
+      if (bookedCheckIn < today) {
+        return fail("Check-in date cannot be in the past.");
+      }
+      if (nightsCount === 0) {
+        return fail("Check-out must be after check-in.");
+      }
+      if (nightsCount > MAX_NIGHTS) {
+        return fail(`Bookings are limited to ${MAX_NIGHTS} nights.`);
+      }
+    } else {
+      if (!bookedCheckIn) return fail("Please select a check-in date & time.");
+      if (
+        !Number.isInteger(Number(numberOfHours)) ||
+        Number(numberOfHours) < 1 ||
+        Number(numberOfHours) > 24
+      ) {
+        return fail("Number of hours must be a whole number from 1 to 24.");
+      }
     }
     if (calculatedAmount <= 0) {
-      toast.error("Could not calculate an amount for this booking.");
-      return;
+      return fail(
+        bookingType === "per-hour"
+          ? "This room has no hourly rate set, so the amount can't be calculated."
+          : "Could not calculate an amount for this booking.",
+      );
     }
 
+    // The server works out the price, booking number and room number itself
     const payload = {
       bookingType,
       roomID: bookingRoom._id,
-      roomNumber: bookingRoom.roomNumber,
       fullName: fullName.trim(),
-      email: email.trim(),
+      email: email.trim() || undefined,
       phoneNumber: phoneNumber.trim(),
-      amount: calculatedAmount,
-      bookedCheckIn: new Date(bookedCheckIn).toISOString(),
-      bookedCheckOut:
-        bookingType === "per-night" && bookingForm.bookedCheckOut
-          ? new Date(bookingForm.bookedCheckOut).toISOString()
-          : null,
-      numberOfHours:
-        bookingType === "per-hour" ? Number(bookingForm.numberOfHours) : null,
+      adults,
+      children,
+      bookedCheckIn:
+        bookingType === "per-hour"
+          ? new Date(bookedCheckIn).toISOString()
+          : bookedCheckIn,
+      ...(bookingType === "per-night"
+        ? { bookedCheckOut }
+        : { numberOfHours: Number(numberOfHours) }),
     };
 
     setIsSubmitting(true);
+    setSubmitError("");
     try {
-      await createBooking(payload);
-      toast.success(`Room ${bookingRoom.roomNumber} booked for ${fullName}`);
-      closeBookingModal();
+      const data = await createAdminBooking(payload);
+      toast.success(
+        `Booking ${data.booking?.bookingCode || ""} created: Room ${bookingRoom.roomNumber} for ${fullName.trim()}`,
+      );
+      setIsSubmitting(false);
+      setBookingRoom(null);
+      setBookingForm(EMPTY_FORM);
       fetchAllRooms();
     } catch (error) {
       console.log(error);
-      toast.error("Failed to create booking");
+      setSubmitError(getErrorMessage(error, "Failed to create booking"));
     } finally {
       setIsSubmitting(false);
     }
@@ -366,9 +458,14 @@ const AdminRooms = () => {
                       <FaUsers className="text-slate-400" /> Guests:
                     </span>
                     <span className="font-bold text-slate-800">
-                      {r.numberOfGuest}
+                      {roomCapacity(r) ?? "—"}
                     </span>
                   </div>
+                  {describeLimits(r).length > 0 && (
+                    <p className="text-[11px] text-slate-400 text-right">
+                      {describeLimits(r).join(" · ")}
+                    </p>
+                  )}
                   <div className="flex justify-between items-center text-slate-500">
                     <span className="flex items-center gap-1.5">
                       <FaMoon className="text-slate-400" /> Per night:
@@ -389,11 +486,9 @@ const AdminRooms = () => {
 
                 <button
                   onClick={() => openBookingModal(r)}
-                  disabled={r.status !== "available"}
+                  disabled={!isBookable(r)}
                   title={
-                    r.status !== "available"
-                      ? "Room is not currently available"
-                      : "Book this room"
+                    !isBookable(r) ? "Room is out of service" : "Book this room"
                   }
                   className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                 >
@@ -442,7 +537,12 @@ const AdminRooms = () => {
                       </p>
                     </td>
                     <td className="py-4 px-4 font-semibold text-slate-800">
-                      {r.numberOfGuest}
+                      {roomCapacity(r) ?? "—"}
+                      {describeLimits(r).length > 0 && (
+                        <p className="text-[11px] text-slate-400 font-normal">
+                          {describeLimits(r).join(" · ")}
+                        </p>
+                      )}
                     </td>
                     <td className="py-4 px-4 font-bold text-slate-900">
                       {currency(r.pricePerNight)}
@@ -456,10 +556,10 @@ const AdminRooms = () => {
                     <td className="py-4 px-4 text-center">
                       <button
                         onClick={() => openBookingModal(r)}
-                        disabled={r.status !== "available"}
+                        disabled={!isBookable(r)}
                         title={
-                          r.status !== "available"
-                            ? "Room is not currently available"
+                          !isBookable(r)
+                            ? "Room is out of service"
                             : "Book this room"
                         }
                         className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold rounded-lg text-xs transition cursor-pointer inline-flex items-center gap-1.5 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
@@ -485,17 +585,19 @@ const AdminRooms = () => {
           <form
             onClick={(e) => e.stopPropagation()}
             onSubmit={handleBookingSubmit}
-            className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 relative animate-scale-up max-h-[90vh] overflow-y-auto"
+            noValidate
+            className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-5 relative animate-scale-up max-h-[90vh] overflow-y-auto"
           >
             <button
               type="button"
               onClick={closeBookingModal}
-              className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+              aria-label="Close"
+              className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 cursor-pointer"
             >
               <FaTimes className="text-base" />
             </button>
 
-            <div className="border-b border-slate-100 pb-4">
+            <div className="border-b border-slate-100 pb-4 pr-10">
               <span className="text-[10px] uppercase font-bold text-amber-600 tracking-wider">
                 Walk-In Reservation
               </span>
@@ -503,8 +605,10 @@ const AdminRooms = () => {
                 Book Room {bookingRoom.roomNumber}
               </h3>
               <p className="text-xs text-slate-400 mt-1 capitalize">
-                {bookingRoom.roomType} · Up to {bookingRoom.numberOfGuest}{" "}
-                guests
+                {bookingRoom.roomType} · Up to{" "}
+                {roomCapacity(bookingRoom) ?? "—"} guests
+                {describeLimits(bookingRoom).length > 0 &&
+                  ` (${describeLimits(bookingRoom).join(", ").toLowerCase()})`}
               </p>
             </div>
 
@@ -542,26 +646,27 @@ const AdminRooms = () => {
                 </label>
                 <input
                   type="text"
-                  required
                   value={bookingForm.fullName}
                   onChange={(e) => handleFormChange("fullName", e.target.value)}
                   placeholder="e.g. Lexis Lutor"
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-amber-500 outline-none transition"
+                  className={inputClass}
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                    <FaEnvelope className="text-amber-600" /> Email
+                    <FaEnvelope className="text-amber-600" /> Email{" "}
+                    <span className="font-medium text-slate-400">
+                      (optional)
+                    </span>
                   </label>
                   <input
                     type="email"
-                    required
                     value={bookingForm.email}
                     onChange={(e) => handleFormChange("email", e.target.value)}
                     placeholder="guest@email.com"
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-amber-500 outline-none transition"
+                    className={inputClass}
                   />
                 </div>
                 <div>
@@ -570,76 +675,138 @@ const AdminRooms = () => {
                   </label>
                   <input
                     type="tel"
-                    required
                     value={bookingForm.phoneNumber}
                     onChange={(e) =>
                       handleFormChange("phoneNumber", e.target.value)
                     }
                     placeholder="0916 920 0398"
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-amber-500 outline-none transition"
+                    className={inputClass}
                   />
                 </div>
               </div>
 
-              {/* Check-in always required */}
-              <div>
-                <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                  <FaCalendarAlt className="text-amber-600" /> Check-In Date &
-                  Time
-                </label>
-                <input
-                  type="datetime-local"
-                  required
-                  value={bookingForm.bookedCheckIn}
-                  onChange={(e) =>
-                    handleFormChange("bookedCheckIn", e.target.value)
-                  }
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-amber-500 outline-none transition"
-                />
-              </div>
-
-              {/* Per-night: check-out. Per-hour: number of hours. */}
-              {bookingForm.bookingType === "per-night" ? (
+              {/* Guests */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                    <FaCalendarAlt className="text-amber-600" /> Check-Out Date
-                    & Time
-                  </label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={bookingForm.bookedCheckOut}
-                    onChange={(e) =>
-                      handleFormChange("bookedCheckOut", e.target.value)
-                    }
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-amber-500 outline-none transition"
-                  />
-                  {bookingForm.bookedCheckIn &&
-                    bookingForm.bookedCheckOut &&
-                    nightsCount === 0 && (
-                      <p className="text-red-500 text-[11px] mt-1 font-semibold">
-                        Check-out must be after check-in.
-                      </p>
-                    )}
-                </div>
-              ) : (
-                <div>
-                  <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                    <FaHourglassHalf className="text-amber-600" /> Number of
-                    Hours
+                    <FaUsers className="text-amber-600" /> Adults
                   </label>
                   <input
                     type="number"
                     min="1"
-                    required
-                    value={bookingForm.numberOfHours}
-                    onChange={(e) =>
-                      handleFormChange("numberOfHours", e.target.value)
-                    }
-                    placeholder="e.g. 3"
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-amber-500 outline-none transition"
+                    value={bookingForm.adults}
+                    onChange={(e) => handleFormChange("adults", e.target.value)}
+                    className={inputClass}
                   />
                 </div>
+                <div>
+                  <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                    <FaUsers className="text-amber-600" /> Children
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={bookingForm.children}
+                    onChange={(e) =>
+                      handleFormChange("children", e.target.value)
+                    }
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              {/* Per-night: dates. Per-hour: check-in date & time + hours. */}
+              {bookingForm.bookingType === "per-night" ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                        <FaCalendarAlt className="text-amber-600" /> Check-In
+                        Date
+                      </label>
+                      <input
+                        type="date"
+                        min={today}
+                        value={bookingForm.bookedCheckIn}
+                        onChange={(e) =>
+                          handleNightCheckInChange(e.target.value)
+                        }
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                        <FaCalendarAlt className="text-amber-600" /> Check-Out
+                        Date
+                      </label>
+                      <input
+                        type="date"
+                        min={
+                          bookingForm.bookedCheckIn
+                            ? addDays(bookingForm.bookedCheckIn, 1)
+                            : addDays(today, 1)
+                        }
+                        value={bookingForm.bookedCheckOut}
+                        onChange={(e) =>
+                          handleFormChange("bookedCheckOut", e.target.value)
+                        }
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Check-in from {formatTimeLabel(DEFAULT_CHECK_IN_TIME)} ·
+                    Check-out by {formatTimeLabel(DEFAULT_CHECK_OUT_TIME)}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold text-slate-700 flex items-center gap-1.5">
+                        <FaCalendarAlt className="text-amber-600" /> Check-In
+                        Date & Time
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleFormChange(
+                            "bookedCheckIn",
+                            nowForDateTimeInput(),
+                          )
+                        }
+                        className="text-[11px] font-bold text-amber-700 hover:underline cursor-pointer"
+                      >
+                        Use current time
+                      </button>
+                    </div>
+                    <input
+                      type="datetime-local"
+                      value={bookingForm.bookedCheckIn}
+                      onChange={(e) =>
+                        handleFormChange("bookedCheckIn", e.target.value)
+                      }
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                      <FaHourglassHalf className="text-amber-600" /> Number of
+                      Hours
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="24"
+                      value={bookingForm.numberOfHours}
+                      onChange={(e) =>
+                        handleFormChange("numberOfHours", e.target.value)
+                      }
+                      placeholder="e.g. 3"
+                      className={inputClass}
+                    />
+                  </div>
+                </>
               )}
 
               {/* Amount — always derived from the room's rate, never editable */}
@@ -661,6 +828,17 @@ const AdminRooms = () => {
                 </p>
               </div>
             </div>
+
+            {/* Validation / server error */}
+            {submitError && (
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-800 rounded-xl px-3.5 py-3 text-xs font-semibold leading-relaxed"
+              >
+                <FaExclamationTriangle className="mt-0.5 shrink-0" />
+                <span>{submitError}</span>
+              </div>
+            )}
 
             <div className="pt-2 flex items-center gap-3">
               <button

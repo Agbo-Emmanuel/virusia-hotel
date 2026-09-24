@@ -15,7 +15,9 @@ export const ENDPOINTS = {
   APRROVE_KYC: (user_id) => `/api/admin/kyc/${user_id}/approve`,
 
   //Booking
-  GET_ALL_BOOKINGS: "/api/booking/get-all-bookings",
-  CREATE_BOOKING: "/api/booking/create-booking",
-  UPDATE_BOOKING_STATUS: "/api/booking/update-booking-status",
+  GET_AVAILABLE_ROOMS: "/api/booking/available-rooms", // public
+  CREATE_BOOKING: "/api/booking/create-booking", // public (per-night only)
+  ADMIN_CREATE_BOOKING: "/api/booking/admin/create-booking", // staff only
+  GET_ALL_BOOKINGS: "/api/booking/get-all-bookings", // staff only
+  UPDATE_BOOKING_STATUS: "/api/booking/update-booking-status", // staff only
 };
