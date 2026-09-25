@@ -17,6 +17,7 @@ export const ENDPOINTS = {
   //Booking
   GET_AVAILABLE_ROOMS: "/api/booking/available-rooms", // public
   CREATE_BOOKING: "/api/booking/create-booking", // public (per-night only)
+  ADMIN_AVAILABLE_ROOMS: "/api/booking/admin/available-rooms", // staff only
   ADMIN_CREATE_BOOKING: "/api/booking/admin/create-booking", // staff only
   GET_ALL_BOOKINGS: "/api/booking/get-all-bookings", // staff only
   UPDATE_BOOKING_STATUS: "/api/booking/update-booking-status", // staff only

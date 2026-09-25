@@ -21,6 +21,15 @@ export const createBooking = async (payload) => {
   return response.data;
 };
 
+// Staff only: rooms free for a walk-in guest, right now or at a later time.
+// params: { bookingType: "per-night" | "per-hour", adults, children, ...
+//   per-night: checkIn, checkOut ("YYYY-MM-DD")
+//   per-hour:  checkIn (ISO datetime), numberOfHours }
+export const getAvailableRoomsAdmin = async (params) => {
+  const response = await api.get(ENDPOINTS.ADMIN_AVAILABLE_ROOMS, { params });
+  return response.data;
+};
+
 // Staff only: front-desk booking (per-night or per-hour)
 export const createAdminBooking = async (payload) => {
   const response = await api.post(ENDPOINTS.ADMIN_CREATE_BOOKING, payload);
