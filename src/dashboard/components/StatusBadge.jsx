@@ -7,6 +7,7 @@ import {
   FaTools,
   FaUserCheck,
   FaSignOutAlt,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 
 const statusConfigs = {
@@ -67,6 +68,14 @@ const statusConfigs = {
     dot: "bg-amber-500",
     icon: FaClock,
   },
+  // Set automatically once a checked-in guest is more than 20 minutes past
+  // their booked check-out time and hasn't checked out yet.
+  overdue: {
+    label: "Overdue",
+    bg: "bg-red-50 text-red-700 border-red-200",
+    dot: "bg-red-500",
+    icon: FaExclamationTriangle,
+  },
 };
 
 const StatusBadge = ({ status, size = "md", showIcon = true }) => {
@@ -79,7 +88,8 @@ const StatusBadge = ({ status, size = "md", showIcon = true }) => {
   };
 
   const IconComponent = config.icon;
-  const paddingClass = size === "sm" ? "px-2 py-0.5 text-[11px]" : "px-3 py-1 text-xs";
+  const paddingClass =
+    size === "sm" ? "px-2 py-0.5 text-[11px]" : "px-3 py-1 text-xs";
 
   return (
     <span

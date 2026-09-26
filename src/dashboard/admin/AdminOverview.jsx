@@ -12,6 +12,7 @@ import {
   FaSearch,
   FaSync,
   FaEye,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { getAllRooms } from "../../services/room.service";
@@ -37,6 +38,7 @@ const formatDateTime = (value) => {
 const TABS = [
   { id: "arrivals", label: "Arrivals" },
   { id: "departures", label: "Departures" },
+  { id: "overdue", label: "Overdue" },
   { id: "inhouse", label: "In-house" },
   { id: "upcoming", label: "Upcoming" },
   { id: "all", label: "All" },
@@ -99,6 +101,9 @@ const AdminOverview = () => {
   //   due arrival   = pending/confirmed and check-in date is today or earlier
   //   upcoming      = pending/confirmed and check-in date is after today
   //   due departure = checked-in and booked check-out date is today or earlier
+  //   overdue       = set automatically by the backend once a checked-in
+  //                   guest is more than 20 minutes past their booked
+  //                   check-out time and still hasn't checked out
   // ---------------------------------------------------------------------
   const buckets = useMemo(() => {
     const today = todayISO();
@@ -115,10 +120,13 @@ const AdminOverview = () => {
     );
     const arrivedToday = bookings.filter(
       (b) =>
-        (b.status === "checked-in" || b.status === "checked-out") &&
+        (b.status === "checked-in" ||
+          b.status === "checked-out" ||
+          b.status === "overdue") &&
         dateOf(b.actualCheckIn) === today,
     );
     const inHouse = bookings.filter((b) => b.status === "checked-in");
+    const overdue = bookings.filter((b) => b.status === "overdue");
     const dueDepartures = inHouse.filter(
       (b) => b.bookedCheckOut && dateOf(b.bookedCheckOut) <= today,
     );
@@ -131,6 +139,7 @@ const AdminOverview = () => {
       upcoming,
       arrivedToday,
       inHouse,
+      overdue,
       dueDepartures,
       departedToday,
     };
@@ -153,6 +162,7 @@ const AdminOverview = () => {
     const pendingCheckIns = buckets.dueArrivals.length;
     const completedCheckOuts = buckets.departedToday.length;
     const pendingCheckOuts = buckets.dueDepartures.length;
+    const overdueCount = buckets.overdue.length;
 
     return {
       totalRooms,
@@ -167,13 +177,21 @@ const AdminOverview = () => {
       completedCheckOuts,
       pendingCheckOuts,
       totalCheckOuts: completedCheckOuts + pendingCheckOuts,
+      overdueCount,
     };
   }, [rooms, buckets]);
 
   const tabRows = useMemo(
     () => ({
+      // Departures includes overdue guests too — they still need to check
+      // out, they've just gone past the "due" moment without moving there.
       arrivals: [...buckets.dueArrivals, ...buckets.arrivedToday],
-      departures: [...buckets.dueDepartures, ...buckets.departedToday],
+      departures: [
+        ...buckets.dueDepartures,
+        ...buckets.overdue,
+        ...buckets.departedToday,
+      ],
+      overdue: buckets.overdue,
       inhouse: buckets.inHouse,
       upcoming: buckets.upcoming,
       all: bookings,
@@ -226,6 +244,12 @@ const AdminOverview = () => {
   const scrollToSchedule = () => {
     const el = document.getElementById("operational-schedule");
     if (el) el.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const viewOverdueBookings = () => {
+    setActiveTab("overdue");
+    setSearchTerm("");
+    scrollToSchedule();
   };
 
   return (
@@ -281,8 +305,35 @@ const AdminOverview = () => {
         </div>
       </div>
 
+      {/* Overdue alert — only shown when there's actually something to act on */}
+      {!isLoading && metrics.overdueCount > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-lg shrink-0">
+              <FaExclamationTriangle />
+            </div>
+            <div>
+              <p className="font-bold text-red-800 text-sm">
+                {metrics.overdueCount} guest
+                {metrics.overdueCount === 1 ? "" : "s"} overdue for check-out
+              </p>
+              <p className="text-xs text-red-600/80 mt-0.5">
+                More than 20 minutes past their booked check-out time and still
+                haven't checked out.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={viewOverdueBookings}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition cursor-pointer whitespace-nowrap shrink-0"
+          >
+            View overdue bookings
+          </button>
+        </div>
+      )}
+
       {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
         <StatCard
           title="Today's Check-ins"
           value={isLoading ? "..." : `${metrics.totalCheckIns} Guests`}
@@ -305,6 +356,20 @@ const AdminOverview = () => {
             isLoading
               ? "Loading..."
               : `${metrics.completedCheckOuts} completed • ${metrics.pendingCheckOuts} pending`
+          }
+        />
+        <StatCard
+          title="Overdue Check-outs"
+          value={isLoading ? "..." : `${metrics.overdueCount}`}
+          isPositive={metrics.overdueCount === 0}
+          icon={FaExclamationTriangle}
+          color="red"
+          subtitle={
+            isLoading
+              ? "Loading..."
+              : metrics.overdueCount > 0
+                ? "Needs follow-up now"
+                : "All guests on schedule"
           }
         />
         <StatCard
@@ -350,19 +415,28 @@ const AdminOverview = () => {
 
           {/* Filter Tabs */}
           <div className="flex items-center bg-slate-100 p-1 rounded-xl gap-1 text-xs font-bold text-slate-600 overflow-x-auto">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-3 py-1.5 rounded-lg transition cursor-pointer whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? "bg-white text-amber-700 shadow-xs"
-                    : "hover:text-slate-900"
-                }`}
-              >
-                {tab.label} ({isLoading ? "..." : tabRows[tab.id].length})
-              </button>
-            ))}
+            {TABS.map((tab) => {
+              const count = isLoading ? "..." : tabRows[tab.id].length;
+              const isOverdueTab = tab.id === "overdue";
+              const flagged = isOverdueTab && !isLoading && count > 0;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-3 py-1.5 rounded-lg transition cursor-pointer whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? flagged
+                        ? "bg-red-600 text-white shadow-xs"
+                        : "bg-white text-amber-700 shadow-xs"
+                      : flagged
+                        ? "text-red-700 hover:text-red-900"
+                        : "hover:text-slate-900"
+                  }`}
+                >
+                  {tab.label} ({count})
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -378,6 +452,14 @@ const AdminOverview = () => {
           />
         </div>
 
+        {activeTab === "overdue" &&
+          !isLoading &&
+          filteredSchedule.length === 0 && (
+            <p className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3.5 py-2.5">
+              No overdue guests right now — everyone is on schedule.
+            </p>
+          )}
+
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-600">
@@ -387,7 +469,7 @@ const AdminOverview = () => {
                 <th className="py-3 px-4">Guest Name</th>
                 <th className="py-3 px-4">Room Number</th>
                 <th className="py-3 px-4">
-                  {activeTab === "departures"
+                  {activeTab === "departures" || activeTab === "overdue"
                     ? "Check-out Time"
                     : "Check-in Time"}
                 </th>
@@ -418,7 +500,11 @@ const AdminOverview = () => {
                   <tr
                     key={row._id}
                     onClick={() => setSelectedBooking(row)}
-                    className="hover:bg-amber-50/30 transition cursor-pointer"
+                    className={`transition cursor-pointer ${
+                      row.status === "overdue"
+                        ? "bg-red-50/60 hover:bg-red-50"
+                        : "hover:bg-amber-50/30"
+                    }`}
                   >
                     <td className="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap">
                       {row.bookingCode}
@@ -433,9 +519,15 @@ const AdminOverview = () => {
                       Room {row.roomNumber}
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className="bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded text-[11px] whitespace-nowrap">
+                      <span
+                        className={`font-semibold px-2 py-0.5 rounded text-[11px] whitespace-nowrap ${
+                          row.status === "overdue"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-slate-100 text-slate-700"
+                        }`}
+                      >
                         {formatDateTime(
-                          activeTab === "departures"
+                          activeTab === "departures" || activeTab === "overdue"
                             ? row.bookedCheckOut
                             : row.bookedCheckIn || row.bookedCheckOut,
                         )}
@@ -472,13 +564,18 @@ const AdminOverview = () => {
                             Complete Check-in
                           </button>
                         )}
-                        {row.status === "checked-in" && (
+                        {(row.status === "checked-in" ||
+                          row.status === "overdue") && (
                           <button
                             disabled={isUpdating}
                             onClick={() =>
                               handleStatusChange(row._id, "checked-out")
                             }
-                            className="bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold px-3 py-1 rounded-lg text-[11px] transition cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                            className={`font-bold px-3 py-1 rounded-lg text-[11px] transition cursor-pointer disabled:opacity-50 whitespace-nowrap ${
+                              row.status === "overdue"
+                                ? "bg-red-600 hover:bg-red-700 text-white"
+                                : "bg-sky-50 hover:bg-sky-100 text-sky-800"
+                            }`}
                           >
                             Check-out Guest
                           </button>

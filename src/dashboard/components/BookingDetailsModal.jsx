@@ -12,11 +12,15 @@ import { formatPrice } from "../../utils/formatMoney";
 
 // Which status each booking may move to next. Mirrors the backend rules.
 // Cancelled and checked-out are final. A confirmed booking can still be
-// cancelled (e.g. a walk-in entered by mistake, or a no-show).
+// cancelled (e.g. a walk-in entered by mistake, or a no-show). "overdue" is
+// set automatically by the backend (a checked-in guest more than 20 minutes
+// past their booked check-out), not chosen manually here, but once a booking
+// is overdue it can still be checked out normally.
 export const STATUS_FLOW = {
   pending: ["confirmed", "cancelled"],
   confirmed: ["checked-in", "cancelled"],
   "checked-in": ["checked-out"],
+  overdue: ["checked-out"],
   "checked-out": [],
   cancelled: [],
 };
